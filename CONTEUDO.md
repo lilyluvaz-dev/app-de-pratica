@@ -144,7 +144,7 @@ ok pra um ícone pequeno, evite pra fotos (o Turso grátis tem teto de 5GB no to
 
 ## Limitação conhecida
 
-No painel da Lily, "Ver respostas" mostra o valor salvo cru — pra drag-and-drop isso é um JSON
+No painel, "Ver respostas" mostra o valor salvo cru — pra drag-and-drop isso é um JSON
 tipo `{"t1":"p2","t2":"p1"}`, não uma frase legível. A conferência do trabalho do aluno continua
 sendo feita na própria página dele, comparando com o `.reveal-content` (gabarito), como já é o
 fluxo hoje pros outros exercícios.
