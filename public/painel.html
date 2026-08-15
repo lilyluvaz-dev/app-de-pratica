@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel do Professor</title>
+<style>
+  /* ---- Paleta e tipografia: troque só aqui pra personalizar o visual ----
+     Cor: os nomes das variáveis (--amber-bold etc.) ficaram assim por
+     história do projeto original, mas são só rótulos — pode colocar
+     qualquer cor no valor de cada uma, a estrutura abaixo (uma cor de
+     fundo escuro, branco, um tom neutro, uma cor de destaque com 3
+     variações mais claras, uma cor de "tinta" mais escura da mesma
+     família, vermelho de perigo, e uma cor de borda) é o que o resto
+     do CSS espera encontrar. Mantenha igual à paleta de aluno.html
+     pras duas telas combinarem.
+     Fonte: troque --font-display/--font-label/--font-body pela pilha
+     de fontes que quiser (ou por uma fonte do Google Fonts, adicionando
+     o <link> correspondente no <head>). */
+  :root{
+    --charcoal:#23262b; --white:#ffffff; --muted:#9aa1a9;
+    --amber-bold:#5b8fc9; --amber-1:#cfe0f2; --amber-2:#e2edf7; --amber-3:#f2f6fa;
+    --ink-amber:#3a6089; --danger:#e0524a; --line:#c3cfd9;
+    --font-display:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --font-label:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--charcoal);
+    background-image:radial-gradient(circle at 15% 8%, rgba(91,143,201,0.08), transparent 40%),radial-gradient(circle at 85% 92%, rgba(91,143,201,0.06), transparent 45%);
+    color:var(--charcoal); font-family:var(--font-body); line-height:1.6; padding:0 0 80px 0;
+  }
+  header{padding:48px 24px 32px 24px; text-align:center; color:var(--white);}
+  .eyebrow{font-family:var(--font-label); font-weight:700; font-size:12.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--amber-bold); margin-bottom:14px;}
+  h1{font-family:var(--font-display); font-weight:900; font-size:clamp(28px,4vw,40px); margin:0;}
+  .wrap{max-width:820px; margin:0 auto; padding:0 24px;}
+  .card{background:var(--amber-3); border-radius:2px; padding:32px 36px; margin-bottom:24px; box-shadow:0 24px 60px -30px rgba(0,0,0,0.55);}
+  h2{font-family:var(--font-display); font-weight:800; font-size:24px; margin:0 0 4px 0;}
+  .tagline{font-style:italic; color:#6b7178; font-size:14px; margin-bottom:22px;}
+  label{display:block; font-weight:700; font-size:14px; margin:14px 0 6px 0;}
+  input, textarea, select{width:100%; font-family:var(--font-body); font-size:14.5px; padding:10px 12px; border:1px solid var(--line); border-radius:2px; background:#fff; color:var(--charcoal);}
+  textarea{resize:vertical; min-height:120px; font-family:var(--font-body); font-size:13px;}
+  input:focus, textarea:focus, select:focus{outline:none; border-color:var(--amber-bold);}
+  button{font-family:var(--font-label); font-weight:700; font-size:12.5px; letter-spacing:0.06em; text-transform:uppercase; background:var(--amber-bold); border:none; color:var(--charcoal); padding:12px 22px; border-radius:20px; cursor:pointer; margin-top:16px;}
+  button:hover{background:var(--amber-2);}
+  button.ghost{background:none; border:1px solid var(--ink-amber); color:var(--ink-amber);}
+  button.ghost:hover{background:var(--ink-amber); color:#fff;}
+  button.ghost.danger{border-color:var(--danger); color:var(--danger);}
+  button.ghost.danger:hover{background:var(--danger); color:#fff;}
+  .hidden{display:none;}
+  .aluno-item{border:1px solid var(--line); border-radius:2px; padding:14px 16px; margin:10px 0; background:var(--amber-2);}
+  .sessao-item{border:1px solid var(--line); border-radius:2px; padding:14px 16px; margin:10px 0; background:var(--white);}
+  .aluno-cabecalho{display:flex; justify-content:space-between; align-items:center; cursor:pointer;}
+  .aluno-contador{font-family:var(--font-label); font-weight:600; font-size:11.5px; letter-spacing:0.05em; color:var(--ink-amber);}
+  .aviso-novas{background:var(--amber-bold); color:var(--charcoal); font-family:var(--font-label); font-weight:700; font-size:12.5px; letter-spacing:0.04em; padding:12px 16px; border-radius:2px; margin-bottom:16px;}
+  .selo-novo{font-family:var(--font-label); font-weight:700; font-size:10.5px; letter-spacing:0.05em; text-transform:uppercase; background:var(--amber-bold); color:var(--charcoal); padding:2px 8px; border-radius:20px; margin-left:8px;}
+  .selo-fin{font-family:var(--font-label); font-weight:600; font-size:10.5px; letter-spacing:0.05em; color:#4a7a3a;}
+  .selo-aberta{font-family:var(--font-label); font-weight:600; font-size:10.5px; letter-spacing:0.05em; color:#80868d;}
+  .aluno-detalhe{display:none; margin-top:14px;}
+  .aluno-detalhe.aberto{display:block;}
+  .aluno-acoes{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
+  .aluno-nome{font-family:var(--font-display); font-weight:700; font-size:18px;}
+  .link-box{font-family:var(--font-body); font-size:12px; background:var(--amber-1); padding:8px 12px; border-radius:2px; margin-top:8px; word-break:break-all; cursor:pointer;}
+  .status{font-family:var(--font-label); font-weight:600; font-size:12px; color:var(--ink-amber); margin-top:10px; min-height:16px;}
+  .resposta-item{border-left:3px solid var(--amber-bold); padding:8px 14px; margin:10px 0; background:var(--amber-1); font-size:14px;}
+  .resposta-campo{font-family:var(--font-label); font-weight:600; font-size:11px; color:var(--ink-amber); text-transform:uppercase; letter-spacing:0.05em;}
+  .divisor{border:none; border-top:1px dashed var(--line); margin:22px 0;}
+  .small{font-size:12.5px; color:#80868d;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow" id="cabecalho-nome">Nome do professor · Nome do app</div>
+  <h1>Painel de acompanhamento</h1>
+</header>
+
+<div class="wrap">
+
+  <div class="card" id="login-card">
+    <h2>Entrar</h2>
+    <p class="tagline">Só você acessa este painel.</p>
+    <form onsubmit="entrar(); return false;">
+      <input type="text" name="username" value="professor" autocomplete="username" style="display:none;" readonly>
+      <label>Senha</label>
+      <input type="password" id="senha" name="password" autocomplete="current-password" placeholder="Sua senha do painel">
+      <button type="submit">Entrar</button>
+    </form>
+    <div class="status" id="login-status"></div>
+  </div>
+
+  <div id="conteudo" class="hidden">
+
+    <div class="card">
+      <h2>Novo aluno</h2>
+      <p class="tagline">Cria o aluno e gera o link secreto dele.</p>
+      <label>Nome do aluno</label>
+      <input type="text" id="novo-nome" placeholder="Ex: nome do aluno">
+      <button onclick="criarAluno()">Criar aluno</button>
+      <div class="status" id="aluno-status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Nova sessão</h2>
+      <p class="tagline">Cola aqui o material da aula (o HTML que o Claude gerar) e escolhe o aluno.</p>
+      <label>Aluno</label>
+      <select id="sessao-aluno"></select>
+      <label>Título da sessão</label>
+      <input type="text" id="sessao-titulo" placeholder="Ex: 01: tema da aula">
+      <label>Data da aula</label>
+      <input type="date" id="sessao-data">
+      <label>Conteúdo (HTML dos exercícios)</label>
+      <textarea id="sessao-conteudo" placeholder="Cole aqui o HTML gerado pelo Claude..."></textarea>
+      <button onclick="criarSessao()">Criar sessão</button>
+      <div class="status" id="sessao-status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Alunos e sessões</h2>
+      <p class="tagline">Toque numa sessão para ver as respostas.</p>
+      <div id="aviso-novas" class="aviso-novas" style="display:none;"></div>
+      <div id="lista-alunos"></div>
+    </div>
+
+    <div class="card hidden" id="respostas-card">
+      <h2 id="respostas-titulo">Respostas</h2>
+      <div id="lista-respostas"></div>
+      <button class="ghost" onclick="document.getElementById('respostas-card').classList.add('hidden')">Fechar</button>
+    </div>
+
+    <div class="card hidden" id="editar-card">
+      <h2>Editar conteúdo da sessão</h2>
+      <p class="tagline">Corrige o HTML sem apagar as respostas já salvas do aluno.</p>
+      <textarea id="editar-conteudo" style="min-height:300px; font-family:var(--font-body); font-size:13px;"></textarea>
+      <button onclick="salvarEdicaoConteudo()">Salvar conteúdo</button>
+      <button class="ghost" onclick="document.getElementById('editar-card').classList.add('hidden')">Cancelar</button>
+      <div class="status" id="editar-status"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Texto do cabeçalho do painel — troque aqui pelo seu nome e o nome do seu app.
+const NOME_CABECALHO = 'Nome do professor · Nome do app';
+document.getElementById('cabecalho-nome').textContent = NOME_CABECALHO;
+
+let senhaAtual = '';
+let dadosPainel = { alunos: [], sessoes: [] };
+let sessaoEditandoId = null;
+
+async function entrar(){
+  const senha = document.getElementById('senha').value;
+  const r = await fetch('/api/painel', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha }) });
+  if(r.status === 403){ document.getElementById('login-status').innerText = 'Senha incorreta.'; return; }
+  senhaAtual = senha;
+  document.getElementById('login-card').classList.add('hidden');
+  document.getElementById('conteudo').classList.remove('hidden');
+  dadosPainel = await r.json();
+  renderizar();
+}
+
+function renderizar(){
+  const alunosOrdenados = [...dadosPainel.alunos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  const sel = document.getElementById('sessao-aluno');
+  sel.innerHTML = alunosOrdenados.map(a => `<option value="${a.id}">${a.nome}</option>`).join('');
+
+  const lista = document.getElementById('lista-alunos');
+  if(alunosOrdenados.length === 0){ lista.innerHTML = '<p class="small">Nenhum aluno ainda. Crie o primeiro acima.</p>'; return; }
+  lista.innerHTML = alunosOrdenados.map(a => {
+    const sessoesAluno = dadosPainel.sessoes.filter(s => s.aluno_id === a.id);
+    const link = `${location.origin}/aluno?codigo=${a.codigo}`;
+    const qtd = sessoesAluno.length;
+    const novas = sessoesAluno.filter(s => s.finalizada_em && (!s.vista_em || s.vista_em < s.finalizada_em)).length;
+    const selo = novas > 0 ? `<span class="selo-novo">${novas} nova${novas > 1 ? 's' : ''}</span>` : '';
+    const sessoesHtml = qtd === 0
+      ? '<p class="small">Sem sessões ainda.</p>'
+      : sessoesAluno.map(s => {
+          const fin = s.finalizada_em ? '<span class="selo-fin">✓ finalizada</span>' : '<span class="selo-aberta">em aberto</span>';
+          return `<div class="sessao-item"><strong>${s.titulo}</strong> ${fin}<br>
+            <button class="ghost" onclick="verRespostas(${s.id}, '${s.titulo.replace(/'/g,"")}')">Ver respostas</button>
+            <button class="ghost" onclick="renomearSessao(${s.id}, '${s.titulo.replace(/'/g,"")}', '${s.data_sessao || ''}')">Renomear</button>
+            <button class="ghost" onclick="editarConteudo(${s.id})">Editar conteúdo</button>
+            <button class="ghost danger" onclick="deletarSessao(${s.id}, '${s.titulo.replace(/'/g,"")}')">Deletar</button>
+          </div>`;
+        }).join('');
+    return `<div class="aluno-item">
+      <div class="aluno-cabecalho" onclick="toggleAluno('aluno-${a.id}')">
+        <span class="aluno-nome">${a.nome} ${selo}</span>
+        <span class="aluno-contador">${qtd} ${qtd === 1 ? 'sessão' : 'sessões'} ▾</span>
+      </div>
+      <div class="aluno-detalhe" id="aluno-${a.id}">
+        <div class="link-box" onclick="event.stopPropagation(); copiar('${link}')" title="Toque para copiar">${link}</div>
+        <div class="aluno-acoes">
+          <button class="ghost" onclick="renomearAluno(${a.id}, '${a.nome.replace(/'/g,"")}')">Renomear</button>
+          <button class="ghost danger" onclick="deletarAluno(${a.id}, '${a.nome.replace(/'/g,"")}')">Deletar aluno</button>
+        </div>
+        <div style="margin-top:12px;">${sessoesHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const totalNovas = dadosPainel.sessoes.filter(s => s.finalizada_em && (!s.vista_em || s.vista_em < s.finalizada_em)).length;
+  const aviso = document.getElementById('aviso-novas');
+  if(aviso){
+    aviso.innerHTML = totalNovas > 0 ? `${totalNovas} sessão${totalNovas > 1 ? 'ões' : ''} finalizada${totalNovas > 1 ? 's' : ''} esperando você` : '';
+    aviso.style.display = totalNovas > 0 ? 'block' : 'none';
+  }
+}
+
+function toggleAluno(id){
+  const el = document.getElementById(id);
+  if(el) el.classList.toggle('aberto');
+}
+
+async function criarAluno(){
+  const nome = document.getElementById('novo-nome').value;
+  const r = await fetch('/api/criar-aluno', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, nome }) });
+  const st = document.getElementById('aluno-status');
+  if(!r.ok){ st.innerText = 'Erro ao criar. Confira o nome.'; return; }
+  const d = await r.json();
+  st.innerText = `Aluno "${d.nome}" criado.`;
+  document.getElementById('novo-nome').value = '';
+  await recarregar();
+}
+
+async function criarSessao(){
+  const aluno_id = Number(document.getElementById('sessao-aluno').value);
+  const titulo = document.getElementById('sessao-titulo').value;
+  const conteudo_html = document.getElementById('sessao-conteudo').value;
+  const data_sessao = document.getElementById('sessao-data').value;
+  const r = await fetch('/api/criar-sessao', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, aluno_id, titulo, conteudo_html, data_sessao }) });
+  const st = document.getElementById('sessao-status');
+  if(!r.ok){ st.innerText = 'Erro ao criar sessão. Confira os campos.'; return; }
+  st.innerText = 'Sessão criada.';
+  document.getElementById('sessao-titulo').value = '';
+  document.getElementById('sessao-data').value = '';
+  document.getElementById('sessao-conteudo').value = '';
+  await recarregar();
+}
+
+async function verRespostas(sessaoId, titulo){
+  const r = await fetch('/api/respostas', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, sessao_id: sessaoId }) });
+  const d = await r.json();
+  document.getElementById('respostas-titulo').innerText = 'Respostas: ' + titulo;
+  const lista = document.getElementById('lista-respostas');
+  if(!d.respostas || d.respostas.length === 0){
+    lista.innerHTML = '<p class="small">Este aluno ainda não respondeu nada nesta sessão.</p>';
+  } else {
+    lista.innerHTML = d.respostas.map(r => `<div class="resposta-item"><div class="resposta-campo">${r.campo_id}</div>${r.valor || '<em>(vazio)</em>'}</div>`).join('');
+  }
+  document.getElementById('respostas-card').classList.remove('hidden');
+  document.getElementById('respostas-card').scrollIntoView({ behavior:'smooth' });
+  await fetch('/api/marcar-vista', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, sessao_id: sessaoId }) });
+  await recarregar();
+}
+
+async function editarConteudo(sessaoId){
+  const r = await fetch('/api/conteudo-sessao', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, sessao_id: sessaoId }) });
+  if(!r.ok){ alert('Erro ao buscar o conteúdo.'); return; }
+  const d = await r.json();
+  sessaoEditandoId = sessaoId;
+  document.getElementById('editar-conteudo').value = d.conteudo_html;
+  document.getElementById('editar-status').innerText = '';
+  document.getElementById('editar-card').classList.remove('hidden');
+  document.getElementById('editar-card').scrollIntoView({ behavior:'smooth' });
+}
+
+async function salvarEdicaoConteudo(){
+  const conteudo_html = document.getElementById('editar-conteudo').value;
+  const r = await fetch('/api/editar-conteudo-sessao', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, sessao_id: sessaoEditandoId, conteudo_html }) });
+  const st = document.getElementById('editar-status');
+  if(!r.ok){ st.innerText = 'Erro ao salvar. Tente de novo.'; return; }
+  st.innerText = 'Conteúdo atualizado. As respostas do aluno continuam salvas.';
+  await recarregar();
+}
+
+async function renomearAluno(alunoId, nomeAtual){
+  const novo = prompt('Novo nome do aluno:', nomeAtual);
+  if(novo === null) return;
+  if(!novo.trim()){ alert('O nome não pode ficar vazio.'); return; }
+  const r = await fetch('/api/renomear-aluno', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, aluno_id: alunoId, nome: novo }) });
+  if(!r.ok){ alert('Erro ao renomear. Tente de novo.'); return; }
+  await recarregar();
+}
+
+async function renomearSessao(sessaoId, tituloAtual, dataAtual){
+  const novoTitulo = prompt('Novo título da sessão:', tituloAtual);
+  if(novoTitulo === null) return;
+  if(!novoTitulo.trim()){ alert('O título não pode ficar vazio.'); return; }
+  const novaData = prompt('Data da aula (formato AAAA-MM-DD, deixe como está se não quiser mudar):', dataAtual || '');
+  if(novaData === null) return;
+  const r = await fetch('/api/renomear-sessao', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, sessao_id: sessaoId, titulo: novoTitulo, data_sessao: novaData }) });
+  if(!r.ok){ alert('Erro ao renomear. Tente de novo.'); return; }
+  await recarregar();
+}
+
+async function deletarSessao(sessaoId, titulo){
+  const ok = confirm(`Deletar a sessão "${titulo}"?\n\nIsso apaga a sessão e todas as respostas do aluno nela. Não dá pra desfazer.`);
+  if(!ok) return;
+  const r = await fetch('/api/deletar-sessao', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, sessao_id: sessaoId }) });
+  if(!r.ok){ alert('Erro ao deletar. Tente de novo.'); return; }
+  document.getElementById('respostas-card').classList.add('hidden');
+  await recarregar();
+}
+
+async function deletarAluno(alunoId, nome){
+  const ok = confirm(`Deletar o aluno "${nome}"?\n\nIsso apaga o aluno, TODAS as sessões dele e TODAS as respostas. O link dele para de funcionar. Não dá pra desfazer.`);
+  if(!ok) return;
+  const ok2 = confirm(`Tem certeza mesmo? "${nome}" e tudo dele serão apagados para sempre.`);
+  if(!ok2) return;
+  const r = await fetch('/api/deletar-aluno', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, aluno_id: alunoId }) });
+  if(!r.ok){ alert('Erro ao deletar. Tente de novo.'); return; }
+  document.getElementById('respostas-card').classList.add('hidden');
+  await recarregar();
+}
+
+async function recarregar(){
+  const r = await fetch('/api/painel', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual }) });
+  dadosPainel = await r.json();
+  renderizar();
+}
+
+function copiar(texto){
+  navigator.clipboard.writeText(texto).then(()=>{
+    event.target.innerText = 'Copiado!';
+    setTimeout(()=>{ event.target.innerText = texto; }, 1200);
+  });
+}
+</script>
+
+</body>
+</html>

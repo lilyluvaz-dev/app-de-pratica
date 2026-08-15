@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>After the Lesson</title>
+<style>
+  /* ---- Paleta e tipografia: troque só aqui pra personalizar o visual ----
+     Cor: os nomes das variáveis (--amber-bold etc.) ficaram assim por
+     história do projeto original, mas são só rótulos — pode colocar
+     qualquer cor no valor de cada uma, a estrutura abaixo (uma cor de
+     fundo escuro, branco, um tom neutro, uma cor de destaque com 3
+     variações mais claras, uma cor de "tinta" mais escura da mesma
+     família, vermelho de perigo, e uma cor de borda) é o que o resto
+     do CSS espera encontrar.
+     Fonte: troque --font-display/--font-label/--font-body pela pilha
+     de fontes que quiser (ou por uma fonte do Google Fonts, adicionando
+     o <link> correspondente no <head>). */
+  :root{
+    --charcoal:#23262b; --white:#ffffff; --muted:#9aa1a9;
+    --amber-bold:#5b8fc9; --amber-1:#cfe0f2; --amber-2:#e2edf7; --amber-3:#f2f6fa;
+    --ink-amber:#3a6089; --danger:#e0524a; --line:#c3cfd9;
+    --font-display:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --font-label:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--charcoal);
+    background-image:radial-gradient(circle at 15% 8%, rgba(91,143,201,0.08), transparent 40%),radial-gradient(circle at 85% 92%, rgba(91,143,201,0.06), transparent 45%);
+    color:var(--charcoal); font-family:var(--font-body); line-height:1.6; padding:0 0 80px 0;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:0 24px;}
+  header{padding:56px 24px 40px 24px; text-align:center; color:var(--white);}
+  .eyebrow{font-family:var(--font-label); font-weight:700; font-size:12.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--amber-bold); margin-bottom:16px;}
+  h1{font-family:var(--font-display); font-weight:900; font-size:clamp(30px,4.5vw,44px); line-height:1.15; margin:0;}
+  .header-data{font-family:var(--font-body); font-weight:400; font-style:italic; font-size:15px; color:var(--muted); margin-top:12px;}
+  .finalizar-area{max-width:900px; margin:32px auto 0 auto; padding:0 24px; text-align:center;}
+  .finalizar-btn{font-family:var(--font-label); font-weight:700; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; background:var(--amber-bold); border:none; color:var(--charcoal); padding:14px 28px; border-radius:24px; cursor:pointer;}
+  .finalizar-btn:hover{background:var(--amber-2);}
+  .finalizar-hint{font-size:13px; color:var(--muted); margin-top:12px;}
+  .finalizada-msg{font-family:var(--font-label); font-weight:700; font-size:13px; color:var(--amber-bold); background:rgba(91,143,201,0.12); border:1px solid rgba(91,143,201,0.3); border-radius:24px; padding:14px 24px; display:inline-block;}
+  .save-indicator{position:fixed; top:14px; right:14px; font-family:var(--font-label); font-weight:700; font-size:11px; letter-spacing:0.05em; background:var(--charcoal); color:var(--amber-bold); padding:6px 12px; border-radius:20px; opacity:0; transition:opacity .3s ease; z-index:100; border:1px solid rgba(91,143,201,0.3);}
+  .save-indicator.show{opacity:1;}
+  .road{position:relative; height:52px; max-width:900px; margin:0 auto;}
+  .road svg{width:100%; height:100%; display:block;}
+  .card{max-width:900px; background:var(--amber-3); border-radius:2px; padding:38px 42px; margin:0 auto; box-shadow:0 24px 60px -30px rgba(0,0,0,0.55);}
+  /* Blindagem: mesmo sem a div .card, a seção já nasce com o fundo claro. Evita texto invisível se o conteúdo esquecer o wrapper. */
+  section.block{max-width:900px; margin:0 auto; background:var(--amber-3); border-radius:2px; padding:38px 42px; box-shadow:0 24px 60px -30px rgba(0,0,0,0.55);}
+  section.block .card{box-shadow:none; padding:0; margin:0;}
+  .msg{max-width:600px; margin:40px auto; text-align:center; color:var(--white); font-family:var(--font-display); font-weight:600; font-size:20px;}
+  .kicker{font-family:var(--font-label); font-weight:700; font-size:11.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-amber); margin-bottom:10px;}
+  h2{font-family:var(--font-display); font-weight:800; font-size:28px; margin:0 0 6px 0; color:var(--charcoal);}
+  h3{font-family:var(--font-display); font-weight:700; font-size:17px; margin:0 0 12px 0;}
+  .tagline{font-style:italic; color:#6b7178; font-size:15px; margin-bottom:28px;}
+  p{margin:0 0 16px 0;}
+  img{max-width:100%; height:auto; display:block; margin:18px auto; border-radius:2px;}
+  .transcript{font-family:var(--font-body); font-size:14px; background:var(--amber-2); border-left:3px solid var(--amber-bold); padding:14px 18px; margin:18px 0; color:#33383e; white-space:pre-wrap;}
+  .transcript .pause{color:#8b929a;} .transcript .flag{color:var(--ink-amber); font-weight:700;}
+  .prompt-block{background:var(--amber-2); border:1px solid var(--line); border-radius:2px; padding:22px 24px; margin:22px 0;}
+  .example-block{background:var(--amber-1); border-left:3px solid var(--amber-bold); padding:12px 16px; margin:14px 0 20px 0; font-size:14.5px;}
+  .example-block .lbl{font-family:var(--font-label); font-weight:700; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-amber); display:block; margin-bottom:4px;}
+  .sentence-pair{display:flex; flex-direction:column; gap:6px; margin:14px 0;}
+  .sentence-pair .a, .sentence-pair .b, .sentence-pair .wrong, .sentence-pair .right{font-family:var(--font-display); font-weight:700; font-size:17px; padding:2px 0;} .sentence-pair .b, .sentence-pair .right{color:var(--ink-amber);}
+  textarea{width:100%; font-family:var(--font-body); font-size:14.5px; padding:10px 12px; border:1px solid var(--line); border-radius:2px; background:#fff; resize:vertical; min-height:44px; color:var(--charcoal);}
+  textarea:focus{outline:none; border-color:var(--amber-bold);}
+  .qtext{font-weight:700; font-size:15px; margin-bottom:8px;}
+  .whiteboard-tag{display:inline-block; font-family:var(--font-label); font-weight:700; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; background:var(--charcoal); color:var(--amber-1); padding:3px 9px; border-radius:2px; margin-bottom:14px;}
+  table.map-table, .map-table table{width:100%; border-collapse:collapse; margin:18px 0; font-size:14.5px;}
+  table.map-table th, table.map-table td, .map-table th, .map-table td{border:1px solid var(--line); padding:10px 12px; text-align:left;}
+  table.map-table th, .map-table th{background:var(--amber-2); font-family:var(--font-label); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:0.05em;}
+  .word-list{display:flex; flex-wrap:wrap; gap:10px; margin:18px 0;}
+  .word-chip{font-family:var(--font-display); font-weight:700; font-size:16px; background:#fff; border:1px solid var(--line); border-radius:20px; padding:6px 16px;} .word-chip strong{color:var(--ink-amber);}
+  .drill-lines{font-family:var(--font-display); font-weight:600; font-size:18px; line-height:2; margin:18px 0;} .drill-lines strong{color:var(--ink-amber);}
+  .reveal-btn{font-family:var(--font-label); font-weight:700; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; background:none; border:1px solid var(--amber-bold); color:var(--ink-amber); padding:8px 16px; border-radius:20px; cursor:pointer; margin-top:8px;}
+  .reveal-btn:hover{background:var(--amber-bold); color:var(--charcoal);}
+  .reveal-content{display:none; margin-top:16px; padding-top:16px; border-top:1px dashed var(--line); font-size:14.5px;}
+  .reveal-content.open{display:block;} .reveal-content p{margin:0 0 10px 0;}
+
+  /* ---- Exercícios: arrastar e soltar (match up / complete the sentence / unjumble) ---- */
+  .dnd-exercise{margin:22px 0;}
+  .dnd-hint{font-style:italic; color:#6b7178; font-size:13px; margin:2px 0 10px 0;}
+  .dnd-bank{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0 20px 0; padding:14px; background:var(--amber-2); border-radius:2px; min-height:20px;}
+  .dnd-piece{font-family:var(--font-display); font-weight:700; font-size:16px; background:#fff; border:1px solid var(--line); border-radius:20px; padding:6px 16px; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;}
+  .dnd-piece:active{cursor:grabbing;}
+  .dnd-piece.dragging{box-shadow:0 12px 30px -10px rgba(0,0,0,0.45); z-index:200;}
+  .dnd-piece-placeholder{display:inline-block; visibility:hidden;}
+  .dnd-target{display:inline-flex; align-items:center; justify-content:center; min-width:90px; min-height:34px; padding:4px 12px; margin:0 2px; border:2px dashed var(--line); border-radius:20px; background:var(--amber-2); vertical-align:middle;}
+  .dnd-target.filled{border-style:solid; border-color:var(--amber-bold); background:#fff; padding:2px 4px;}
+  .dnd-target.drag-over{border-color:var(--ink-amber); background:var(--amber-1);}
+  .dnd-row{display:flex; align-items:center; gap:12px; margin:8px 0;}
+  .dnd-label{font-family:var(--font-display); font-weight:700; font-size:16px; min-width:110px;}
+  .formato-unjumble .dnd-row{flex-wrap:wrap;}
+
+  /* ---- Exercício: quiz (clique/seleção, sem drag) ---- */
+  .quiz-exercise{margin:22px 0;}
+  .quiz-option{display:flex; align-items:center; gap:12px; font-family:var(--font-body); font-weight:600; font-size:15px; background:var(--amber-3); border:2px solid var(--line); border-radius:24px; padding:12px 20px; margin:10px 0; cursor:pointer;}
+  .quiz-option::before{content:''; flex:0 0 auto; width:16px; height:16px; border-radius:50%; border:2px solid var(--line); background:#fff;}
+  .quiz-option:hover{border-color:var(--amber-bold);}
+  .quiz-option.selected{border-color:var(--amber-bold); background:var(--amber-1); font-weight:700;}
+  .quiz-option.selected::before{border-color:var(--amber-bold); background:var(--amber-bold); box-shadow:inset 0 0 0 3px var(--amber-1);}
+
+  /* ---- Exercício: flashcard (casca visual sobre reveal-btn/reveal-content já existente) ---- */
+  .flashcard{background:#fff; border:1px solid var(--line); border-radius:2px; padding:28px 24px; margin:18px 0; text-align:center; box-shadow:0 14px 30px -18px rgba(0,0,0,0.4);}
+  .flashcard-front{font-family:var(--font-display); font-weight:800; font-size:24px; color:var(--charcoal);}
+  .flashcard .reveal-btn{margin-top:16px;}
+  .flashcard .reveal-content.flashcard-back{border-top:1px dashed var(--line); font-family:var(--font-display); font-weight:700; font-size:19px; color:var(--ink-amber); text-align:center;}
+
+  .acervo{max-width:900px; margin:0 auto 8px auto; padding:0 24px;}
+  .acervo-toggle{font-family:var(--font-label); font-weight:700; font-size:11.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--amber-bold); background:none; border:1px solid rgba(91,143,201,0.35); border-radius:20px; padding:7px 16px; cursor:pointer;}
+  .acervo-toggle:hover{border-color:var(--amber-bold);}
+  .acervo-lista{display:none; margin-top:12px; background:var(--amber-3); border-radius:2px; padding:10px 14px;}
+  .acervo-lista.open{display:block;}
+  .acervo-item{display:block; padding:8px 6px; font-size:14px; color:var(--charcoal); text-decoration:none; border-bottom:1px solid var(--line); cursor:pointer;}
+  .acervo-item:last-child{border-bottom:none;}
+  .acervo-item:hover{color:var(--ink-amber);}
+  .acervo-item.atual{color:var(--ink-amber); font-weight:700;}
+  .acervo-item .quando{font-family:var(--font-label); font-weight:600; font-size:11px; color:#80868d; margin-left:6px;}
+  @media(max-width:600px){ .card{padding:26px 22px;} section.block{padding:26px 22px;} header{padding:44px 18px 32px 18px;} }
+</style>
+</head>
+<body>
+
+<div class="save-indicator" id="save-indicator">salvando...</div>
+
+<div id="app">
+  <div class="msg" id="loading">Carregando...</div>
+</div>
+
+<script>
+/* ==========================================================================
+   TEXTOS — todo texto que o aluno vê nesta página fica aqui, num lugar só.
+   Pra trocar de idioma, tom ou palavra ("professora" → "professor", etc.),
+   edite só este bloco — o resto do script só lê os valores daqui.
+   ========================================================================== */
+const TEXTOS = {
+  tituloPagina: 'After the Lesson',
+  carregando: 'Carregando...',
+  linkInvalido: 'Link inválido. Peça o link certo para a sua professora.',
+  semMaterial: (nome) => `Oi, ${nome || ''}! Ainda não há material aqui. Sua professora vai avisar quando estiver pronto.`,
+  eyebrow: 'Time to expand',
+  salvando: 'salvando...',
+  salvo: 'salvo',
+  erroSalvar: 'erro ao salvar',
+  dicaArrastar: 'Drag into place. You can move a piece again anytime.',
+  finalizarBotao: "I'm done with this session",
+  finalizarDica: "This lets your teacher know you've finished. You can still edit afterwards.",
+  finalizadaMsg: '✓ You finished this session. You can still come back and edit anytime.',
+  finalizarErro: 'Something went wrong. Please try again.',
+  acervoToggle: (qtd) => `Suas sessões (${qtd})`,
+};
+document.title = TEXTOS.tituloPagina;
+document.getElementById('loading').textContent = TEXTOS.carregando;
+document.getElementById('save-indicator').textContent = TEXTOS.salvando;
+
+const params = new URLSearchParams(location.search);
+const codigo = params.get('codigo');
+const sessaoParam = params.get('sessao');
+let sessaoId = null;
+
+async function iniciar(){
+  if(!codigo){
+    document.getElementById('app').innerHTML = `<div class="msg">${TEXTOS.linkInvalido}</div>`;
+    return;
+  }
+  let url = '/api/sessao?codigo=' + encodeURIComponent(codigo);
+  if(sessaoParam) url += '&sessao=' + encodeURIComponent(sessaoParam);
+  const r = await fetch(url);
+  if(r.status === 404){
+    const d = await r.json();
+    if(d.erro === 'sessao'){
+      document.getElementById('app').innerHTML = `<div class="msg">${TEXTOS.semMaterial(d.nome)}</div>`;
+    } else {
+      document.getElementById('app').innerHTML = `<div class="msg">${TEXTOS.linkInvalido}</div>`;
+    }
+    return;
+  }
+  const d = await r.json();
+  sessaoId = d.sessao.id;
+  render(d);
+}
+
+function render(d){
+  const app = document.getElementById('app');
+  let dataHtml = '';
+  if(d.sessao.data_sessao){
+    const partes = d.sessao.data_sessao.split('-');
+    if(partes.length === 3){
+      const dt = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+      const formatada = dt.toLocaleDateString('pt-BR', { day:'numeric', month:'long', year:'numeric' });
+      dataHtml = `<div class="header-data">${formatada}</div>`;
+    }
+  }
+  app.innerHTML = `
+    <header>
+      <div class="eyebrow">${TEXTOS.eyebrow}</div>
+      <h1>${d.sessao.titulo}</h1>
+      ${dataHtml}
+    </header>
+    <div class="acervo" id="acervo"></div>
+    <div class="road"><svg viewBox="0 0 760 52" preserveAspectRatio="none"><line x1="0" y1="26" x2="760" y2="26" stroke="#c7ced6" stroke-width="2" stroke-dasharray="14 10" opacity="0.6"/></svg></div>
+    <div id="conteudo-sessao">${d.sessao.conteudo_html}</div>
+    <div class="finalizar-area" id="finalizar-area"></div>
+  `;
+  document.querySelectorAll('textarea[id^="ta-"]').forEach(ta=>{
+    if(d.respostas[ta.id] !== undefined){ ta.value = d.respostas[ta.id]; }
+    ta.addEventListener('input', ()=>agendarSalvar(ta.id, ta.value));
+  });
+  document.querySelectorAll('.reveal-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const alvo = document.getElementById(btn.dataset.target);
+      if(alvo) alvo.classList.toggle('open');
+    });
+  });
+  initDragDrop(d);
+  initQuiz(d);
+  carregarAcervo(d.sessao.id);
+  renderFinalizar(d.sessao.finalizada_em);
+}
+
+function renderFinalizar(finalizadaEm){
+  const area = document.getElementById('finalizar-area');
+  if(!area) return;
+  if(finalizadaEm){
+    area.innerHTML = `<div class="finalizada-msg">${TEXTOS.finalizadaMsg}</div>`;
+  } else {
+    area.innerHTML = `<button class="finalizar-btn" onclick="finalizarSessao()">${TEXTOS.finalizarBotao}</button>
+      <p class="finalizar-hint">${TEXTOS.finalizarDica}</p>`;
+  }
+}
+
+async function finalizarSessao(){
+  try{
+    await fetch('/api/finalizar', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ codigo, sessao_id: sessaoId }) });
+    renderFinalizar(new Date().toISOString());
+  }catch(e){
+    alert(TEXTOS.finalizarErro);
+  }
+}
+
+async function carregarAcervo(sessaoAtualId){
+  try{
+    const r = await fetch('/api/sessoes-aluno?codigo=' + encodeURIComponent(codigo));
+    const d = await r.json();
+    if(!d.sessoes || d.sessoes.length <= 1) return;
+    const acervo = document.getElementById('acervo');
+    const itens = d.sessoes.map(s => {
+      const atual = s.id === sessaoAtualId ? ' atual' : '';
+      const data = new Date(s.criada_em).toLocaleDateString('pt-BR', { day:'2-digit', month:'short' });
+      return `<span class="acervo-item${atual}" onclick="abrirSessao(${s.id})">${s.titulo}<span class="quando">${data}</span></span>`;
+    }).join('');
+    acervo.innerHTML = `
+      <button class="acervo-toggle" onclick="document.getElementById('acervo-lista').classList.toggle('open')">${TEXTOS.acervoToggle(d.sessoes.length)}</button>
+      <div class="acervo-lista" id="acervo-lista">${itens}</div>
+    `;
+  }catch(e){ }
+}
+
+function abrirSessao(id){
+  window.location.href = '/aluno?codigo=' + encodeURIComponent(codigo) + '&sessao=' + id;
+}
+
+let timers = {};
+const indicator = document.getElementById('save-indicator');
+
+function agendarSalvar(campoId, valor){
+  clearTimeout(timers[campoId]);
+  indicator.innerText = TEXTOS.salvando;
+  indicator.classList.add('show');
+  timers[campoId] = setTimeout(async ()=>{
+    try{
+      await fetch('/api/salvar', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ codigo, sessao_id: sessaoId, campo_id: campoId, valor: valor }) });
+      indicator.innerText = TEXTOS.salvo;
+      setTimeout(()=>indicator.classList.remove('show'), 1500);
+    }catch(e){
+      indicator.innerText = TEXTOS.erroSalvar;
+    }
+  }, 700);
+}
+
+/* ---- Exercícios: arrastar e soltar (match up / complete the sentence / unjumble) ----
+   Motor único: peça (.dnd-piece, data-piece-id) solta em alvo (.dnd-target, data-target-id),
+   dentro de um container [id^="dnd-"] (esse id é o campo_id salvo). Sem correção automática:
+   só guarda onde cada peça foi colocada. Estado salvo como JSON {targetId: pieceId}. */
+
+let dragState = null;
+
+function initDragDrop(d){
+  document.querySelectorAll('[id^="dnd-"]').forEach(container=>{
+    const banco = container.querySelector('.dnd-bank');
+    if(banco && !container.querySelector('.dnd-hint')){
+      const dica = document.createElement('p');
+      dica.className = 'dnd-hint';
+      dica.textContent = TEXTOS.dicaArrastar;
+      banco.insertAdjacentElement('beforebegin', dica);
+    }
+    restaurarEstadoDnd(container, d.respostas[container.id]);
+    container.querySelectorAll('.dnd-piece').forEach(piece=>{
+      piece.addEventListener('pointerdown', iniciarArrasteDnd);
+    });
+  });
+}
+
+function restaurarEstadoDnd(container, valorSalvo){
+  let estado = {};
+  if(valorSalvo){ try{ estado = JSON.parse(valorSalvo) || {}; }catch(e){ estado = {}; } }
+  Object.keys(estado).forEach(targetId=>{
+    const target = container.querySelector('[data-target-id="' + targetId + '"]');
+    const piece = container.querySelector('[data-piece-id="' + estado[targetId] + '"]');
+    if(target && piece){ target.appendChild(piece); target.classList.add('filled'); }
+  });
+}
+
+function iniciarArrasteDnd(e){
+  const piece = e.currentTarget;
+  const container = piece.closest('[id^="dnd-"]');
+  if(!container) return;
+  const rect = piece.getBoundingClientRect();
+  const originParent = piece.parentElement;
+  // placeholder reserva o espaço da peça no lugar de origem, pra layout (banco/alvo) não
+  // encolher e deslocar os alvos embaixo do dedo/cursor enquanto a peça está sendo arrastada
+  const placeholder = document.createElement('span');
+  placeholder.className = 'dnd-piece-placeholder';
+  placeholder.style.width = rect.width + 'px';
+  placeholder.style.height = rect.height + 'px';
+  originParent.insertBefore(placeholder, piece);
+  dragState = {
+    piece, container, originParent, placeholder,
+    startX: e.clientX, startY: e.clientY,
+    offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top,
+    width: rect.width, height: rect.height,
+    moved: false, alvoAtual: null
+  };
+  piece.classList.add('dragging');
+  piece.style.pointerEvents = 'none';
+  piece.style.position = 'fixed';
+  piece.style.width = rect.width + 'px';
+  piece.style.left = rect.left + 'px';
+  piece.style.top = rect.top + 'px';
+  document.body.appendChild(piece);
+  document.addEventListener('pointermove', moverArrasteDnd);
+  document.addEventListener('pointerup', soltarArrasteDnd);
+  document.addEventListener('pointercancel', soltarArrasteDnd);
+}
+
+function moverArrasteDnd(e){
+  if(!dragState) return;
+  const { piece } = dragState;
+  const x = e.clientX - dragState.offsetX;
+  const y = e.clientY - dragState.offsetY;
+  piece.style.left = x + 'px';
+  piece.style.top = y + 'px';
+  if(Math.abs(e.clientX - dragState.startX) > 7 || Math.abs(e.clientY - dragState.startY) > 7){
+    dragState.moved = true;
+  }
+  const abaixo = document.elementFromPoint(e.clientX, e.clientY);
+  const alvo = abaixo ? abaixo.closest('.dnd-target') : null;
+  const alvoValido = alvo && alvo.closest('[id^="dnd-"]') === dragState.container ? alvo : null;
+  if(dragState.alvoAtual !== alvoValido){
+    if(dragState.alvoAtual) dragState.alvoAtual.classList.remove('drag-over');
+    if(alvoValido) alvoValido.classList.add('drag-over');
+    dragState.alvoAtual = alvoValido;
+  }
+}
+
+function soltarArrasteDnd(e){
+  if(!dragState) return;
+  const { piece, container, originParent, placeholder, moved } = dragState;
+  document.removeEventListener('pointermove', moverArrasteDnd);
+  document.removeEventListener('pointerup', soltarArrasteDnd);
+  document.removeEventListener('pointercancel', soltarArrasteDnd);
+  piece.classList.remove('dragging');
+  piece.style.position = '';
+  piece.style.pointerEvents = '';
+  piece.style.left = '';
+  piece.style.top = '';
+  piece.style.width = '';
+  if(dragState.alvoAtual) dragState.alvoAtual.classList.remove('drag-over');
+
+  const banco = container.querySelector('.dnd-bank');
+  const abaixo = document.elementFromPoint(e.clientX, e.clientY);
+  const alvoSolto = abaixo ? abaixo.closest('.dnd-target') : null;
+  const alvoValido = alvoSolto && alvoSolto.closest('[id^="dnd-"]') === container ? alvoSolto : null;
+
+  if(!moved){
+    // tap curto: peça em alvo volta pro banco; peça já no banco volta exatamente onde estava
+    if(originParent && originParent.classList.contains('dnd-target')){
+      banco.appendChild(piece);
+    } else {
+      originParent.insertBefore(piece, placeholder);
+    }
+  } else if(alvoValido){
+    const ocupante = alvoValido.querySelector('.dnd-piece');
+    if(ocupante && ocupante !== piece){ banco.appendChild(ocupante); }
+    alvoValido.appendChild(piece);
+  } else {
+    banco.appendChild(piece);
+  }
+  if(placeholder.parentElement) placeholder.remove();
+
+  container.querySelectorAll('.dnd-target').forEach(t=>{
+    t.classList.toggle('filled', !!t.querySelector('.dnd-piece'));
+  });
+
+  dragState = null;
+  salvarEstadoDnd(container);
+}
+
+function salvarEstadoDnd(container){
+  const estado = {};
+  container.querySelectorAll('.dnd-target').forEach(target=>{
+    const piece = target.querySelector('.dnd-piece');
+    if(piece){ estado[target.dataset.targetId] = piece.dataset.pieceId; }
+  });
+  agendarSalvar(container.id, JSON.stringify(estado));
+}
+
+/* ---- Exercício: quiz (clique/seleção única, sem drag) ---- */
+
+function initQuiz(d){
+  document.querySelectorAll('[id^="quiz-"]').forEach(container=>{
+    const salvo = d.respostas[container.id];
+    if(salvo){
+      const opt = container.querySelector('.quiz-option[data-valor="' + salvo + '"]');
+      if(opt) opt.classList.add('selected');
+    }
+    container.querySelectorAll('.quiz-option').forEach(opt=>{
+      opt.addEventListener('click', ()=>{
+        container.querySelectorAll('.quiz-option').forEach(o=>o.classList.remove('selected'));
+        opt.classList.add('selected');
+        agendarSalvar(container.id, opt.dataset.valor);
+      });
+    });
+  });
+}
+
+iniciar();
+</script>
+
+</body>
+</html>

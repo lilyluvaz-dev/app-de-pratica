@@ -1,0 +1,4 @@
+node_modules/
+app.db
+.vercel
+.DS_Store

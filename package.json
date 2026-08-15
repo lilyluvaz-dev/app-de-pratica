@@ -1,0 +1,13 @@
+{
+  "name": "app-de-pratica",
+  "version": "1.0.0",
+  "description": "App de prática de idiomas - páginas de prática pós-aula com salvamento automático",
+  "private": true,
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0"
+  }
+}
