@@ -2,7 +2,7 @@
 
 Este arquivo documenta o "formato" que o HTML de cada lição (`conteudo_html`) precisa seguir
 para que os tipos de exercício interativo funcionem. Quem gera o HTML da lição (numa conversa
-separada, fora deste repositório — ver regra no CLAUDE.md) deve seguir esses esqueletos.
+separada, fora deste repositório — ver regra no LEIA-ME.md) deve seguir esses esqueletos.
 
 O motor que interpreta essa marcação vive só em `public/aluno.html`. Nenhum desses exercícios
 corrige ou dá feedback automático de certo/errado — o aluno monta a resposta dele (liga, ordena,
@@ -132,7 +132,7 @@ e a imagem para de aparecer pro aluno sem aviso.
 
 Alternativa sem depender de link externo: embutir a imagem como base64 direto no `src`
 (`<img src="data:image/png;base64,...">`). Funciona, mas engorda a linha da sessão no banco —
-ok pra um ícone pequeno, evite pra fotos (o Turso grátis tem teto de 5GB no total, ver Notion).
+ok pra um ícone pequeno, evite pra fotos (o Turso grátis tem teto de 5GB no total).
 
 ## Estrutural vs cosmético
 
