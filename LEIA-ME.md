@@ -11,10 +11,15 @@ O conteúdo de cada aula (o HTML de cada lição) não mora aqui — mora no ban
 
 Isso é de propósito: **código e dados são separados**. Atualizar o código (subir uma versão nova) nunca apaga nada que os alunos já responderam, porque as respostas vivem no banco (Turso), não no repositório.
 
-## Tipos de exercício e convenção de marcação
-`aluno.html` reconhece tipos de exercício (caixa de texto livre, drag-and-drop em 3 formatos — match up, complete the sentence, unjumble —, quiz, flashcard) por convenção de `id`/classe no HTML colado. Ver [CONTEUDO.md](CONTEUDO.md) para os esqueletos HTML prontos de cada tipo — é o que quem gera o HTML da lição precisa seguir.
+## Tipos de bloco e convenção de marcação
+`aluno.html` reconhece tipos de bloco (bloco explicativo, texto livre, drag-and-drop em 4 formatos — match up, complete the sentence, unjumble, sorting —, quiz, flashcard, reading, link/embed) por convenção de `id`/classe no HTML colado. Ver [CONTEUDO.md](CONTEUDO.md) para os esqueletos HTML prontos de cada tipo — é o que quem gera o HTML da lição precisa seguir.
 
-Regra vale pra todos os tipos: **nenhum corrige automaticamente**. O aluno só monta a resposta dele (escreve, liga, ordena, escolhe) e isso é salvo. A conferência é sempre depois, por conta do próprio aluno, através de um botão de revelar gabarito (`.reveal-content`).
+Regra vale pra todos os exercícios: **nenhum corrige automaticamente**. O aluno só monta a resposta dele (escreve, liga, ordena, escolhe) e isso é salvo. A conferência é sempre depois, por conta do próprio aluno, através de um botão de revelar gabarito (`.reveal-content`).
+
+Cada tipo de bloco ganha uma identidade visual própria (cor/estilo de borda, cantos arredondados) detectada automaticamente a partir do conteúdo colado — não precisa (e não deve) marcar o tipo manualmente. Três comportamentos são automáticos, injetados pelo `aluno.html`, e **não devem ser colados no HTML da lição**:
+- Bloco sem exercício nenhum dentro (só texto) ganha o rótulo "Focus point" sozinho.
+- Flashcards colados em sequência (3 a 7) viram um baralho navegável (Prev/Next) com uma pergunta de reflexão fixa logo abaixo, que salva.
+- Toda sessão ganha uma pergunta de fechamento fixa no final, antes do botão de concluir.
 
 ## Já resolvido, não precisa reabrir a discussão
 - Vercel + Turso pra hospedagem e banco: os planos grátis de ambos não fazem o app dormir e não expiram.

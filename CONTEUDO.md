@@ -20,14 +20,34 @@ do exercício** — o gabarito vive só dentro do `.reveal-content`.
 ## Regra obrigatória: sempre dentro de um `.card` ou `section.block`
 
 O fundo da página é escuro e o texto solto (sem wrapper) herda essa cor escura — fica
-praticamente invisível até você clicar/arrastar em cima às cegas. Todo bloco de exercício abaixo
-precisa estar dentro de `<section class="block">...</section>` (ou de uma `<div class="card">`).
-Os exemplos deste arquivo já vêm com o wrapper — não cole só o `<div id="dnd-...">` sozinho.
+praticamente invisível até você clicar/arrastar em cima às cegas. Todo bloco abaixo (exercício
+ou não) precisa estar dentro de `<section class="block">...</section>` (ou de uma
+`<div class="card">`). Os exemplos deste arquivo já vêm com o wrapper — não cole só o
+`<div id="dnd-...">` sozinho.
 
-## Drag and drop (match up / complete the sentence / unjumble)
+## Bloco explicativo (o tipo "padrão")
 
-Mesmo motor pros três — peça solta (`.dnd-piece`) arrastada até um alvo (`.dnd-target`), dentro
-de um banco (`.dnd-bank`). O que muda entre os três é só o arranjo do HTML.
+Um `section.block` sem nenhum exercício dentro — intro, contexto, explicação, exemplos — é o
+bloco "padrão", e ganha automaticamente um rótulo **"Focus point"** no topo. Isso é 100%
+visual/CSS, não precisa (e não deve) colar um `.kicker` manual pra isso — o `aluno.html` já
+detecta que o bloco não tem exercício nenhum dentro e injeta o rótulo sozinho.
+
+```html
+<section class="block">
+  <h2>Título do tópico</h2>
+  <p class="tagline">Frase de contexto sobre o que foi visto na aula.</p>
+  <p>Explicação, com <strong>destaques</strong> onde fizer sentido...</p>
+</section>
+```
+
+Esse bloco é **só explicação** — não tem caixa de resposta embutida. Se depois da explicação
+tem prática (pergunta pro aluno, drag-and-drop, quiz...), isso é um **bloco separado**, logo em
+seguida, do tipo que fizer sentido.
+
+## Drag and drop (match up / complete the sentence / unjumble / sorting)
+
+Mesmo motor pros quatro — peça solta (`.dnd-piece`) arrastada até um alvo, dentro de um banco
+(`.dnd-bank`). O que muda entre eles é só o arranjo do HTML e o tipo de alvo (único ou coluna).
 
 **Complete the sentence** — alvo dentro de uma frase corrida:
 ```html
@@ -84,6 +104,27 @@ um alvo (coluna B):
 </section>
 ```
 
+**Sorting** — em vez de um alvo por peça, colunas (`.dnd-column` + `data-column-id`) que aceitam
+várias peças cada. Use 2 ou 3 colunas:
+```html
+<section class="block">
+  <h3>Sort the items</h3>
+  <div id="dnd-sort-1" class="dnd-exercise formato-sorting">
+    <p class="qtext">Drag each item to the correct category.</p>
+    <div class="dnd-bank">
+      <span class="dnd-piece" data-piece-id="p1">item 1</span>
+      <span class="dnd-piece" data-piece-id="p2">item 2</span>
+      <span class="dnd-piece" data-piece-id="p3">item 3</span>
+    </div>
+    <div class="dnd-columns">
+      <div class="dnd-column" data-column-id="c1"><span class="dnd-column-label">Categoria A</span></div>
+      <div class="dnd-column" data-column-id="c2"><span class="dnd-column-label">Categoria B</span></div>
+    </div>
+  </div>
+</section>
+```
+`data-column-id` só precisa ser único dentro do próprio exercício, igual `data-target-id`.
+
 ## Quiz (clique/seleção, sem drag)
 
 ```html
@@ -99,19 +140,83 @@ um alvo (coluna B):
 `data-valor` é o que fica salvo — use uma letra/código curto e fixo, não o texto da opção
 (se o texto for reescrito depois, a resposta salva do aluno não deve se perder).
 
-## Flashcard de vocab
+## Flashcard
 
-Não é um tipo novo de verdade — é o `.reveal-btn`/`.reveal-content` já existente, só com uma
-casca visual de cartão. Não salva estado (mesmo comportamento efêmero de qualquer gabarito:
-reabre fechado se o aluno recarregar a página).
+Casca visual sobre o `.reveal-btn`/`.reveal-content` já existente. **Cole sempre de 3 a 7
+flashcards em sequência** (um `section.block` por card, um atrás do outro, sem nenhum outro
+tipo de bloco no meio) — o `aluno.html` detecta cards consecutivos e monta um baralho sozinho,
+com botões Prev/Next (o Next vira ↻ pra recomeçar quando chega no último card). Não precisa (e
+não deve) tentar montar essa navegação na mão.
+
 ```html
 <section class="block">
-  <h3>Flashcard</h3>
+  <h3>Vocab</h3>
   <div class="flashcard">
     <div class="flashcard-front">deadline</div>
     <button class="reveal-btn" data-target="fc-back-1">Flip card</button>
-    <div class="reveal-content flashcard-back" id="fc-back-1">prazo final</div>
+    <div class="reveal-content flashcard-back" id="fc-back-1">The latest time or date by which something must be finished.</div>
   </div>
+</section>
+<section class="block">
+  <div class="flashcard">
+    <div class="flashcard-front">overwhelmed</div>
+    <button class="reveal-btn" data-target="fc-back-2">Flip card</button>
+    <div class="reveal-content flashcard-back" id="fc-back-2">Feeling like you have more than you can handle.</div>
+  </div>
+</section>
+```
+
+O verso (`.flashcard-back`) aceita um texto mais longo — uma explicação, definição ou exemplo,
+não só uma palavra curta — o CSS já foi ajustado pra isso (texto alinhado à esquerda, mais
+compacto). Escreva o que fizer mais sentido pro tipo de conteúdo da sua aula.
+
+**A pergunta de reflexão depois do baralho é automática** — o `aluno.html` sempre acrescenta,
+logo depois do último card, uma pergunta padrão (configurável no objeto `TEXTOS` do
+`aluno.html`, chave `flashReflectPergunta`) com uma caixa de texto que salva normalmente. Não
+precisa (e não deve) colar essa pergunta manualmente.
+
+## Reading
+
+Passagem curta de leitura que você cola. Diferente do bloco explicativo — é conteúdo pro aluno
+ler, não uma explicação sua. O texto precisa estar dentro de
+`<div class="reading-passage" id="...">` — esse `id` não precisa ser único fora do próprio
+bloco, mas dá um nome descritivo (`leitura-1` etc.).
+
+```html
+<section class="block">
+  <h3>Texto</h3>
+  <div class="reading-passage" id="leitura-1">
+    <p>Primeiro parágrafo da passagem...</p>
+    <p>Segundo parágrafo da passagem...</p>
+  </div>
+</section>
+```
+
+## Link/embed (vídeo ou artigo externo)
+
+**Vídeo**: cole o código de embed que o próprio YouTube (ou Vimeo etc.) fornece — em "Compartilhar
+→ Incorporar" — dentro de `<div class="embed-video">`. Não precisa mexer no `<iframe>`, o CSS já
+deixa responsivo (proporção 16:9).
+```html
+<section class="block">
+  <h3>Assista</h3>
+  <div class="embed-video">
+    <iframe src="https://www.youtube.com/embed/VIDEO_ID" title="..." allowfullscreen></iframe>
+  </div>
+</section>
+```
+
+**Artigo/página externa**: só funciona como link clicável, não como embed de verdade — a maioria
+dos sites de artigo/notícia bloqueia ser embutido em iframe por segurança (política do próprio
+site, não é algo que dá pra contornar). Use um `.link-card`, que abre em nova aba:
+```html
+<section class="block">
+  <h3>Leitura extra</h3>
+  <a class="link-card" href="https://exemplo.com/artigo" target="_blank" rel="noopener">
+    <span class="link-card-label">Article</span>
+    <span class="link-card-title">Título do artigo</span>
+    <span class="link-card-url">exemplo.com</span>
+  </a>
 </section>
 ```
 
@@ -134,17 +239,29 @@ Alternativa sem depender de link externo: embutir a imagem como base64 direto no
 (`<img src="data:image/png;base64,...">`). Funciona, mas engorda a linha da sessão no banco —
 ok pra um ícone pequeno, evite pra fotos (o Turso grátis tem teto de 5GB no total).
 
+## Pergunta de fechamento da sessão (automática)
+
+O `aluno.html` sempre acrescenta, sozinho, uma última pergunta fixa no final de toda sessão,
+logo antes do botão "I'm done with this session" (textos configuráveis no objeto `TEXTOS`,
+chaves `fechamentoKicker`/`fechamentoPergunta`). Isso não é algo que quem gera o HTML da lição
+precisa (ou deve) colar — é automático, igual a pergunta de reflexão do flashcard.
+
 ## Estrutural vs cosmético
 
 - **Estrutural** (o motor em `aluno.html` depende disso pra funcionar): `.dnd-exercise` com
   `id="dnd-..."`, `.dnd-bank`, `.dnd-piece` + `data-piece-id`, `.dnd-target` + `data-target-id`,
-  `.dnd-label`, `.dnd-row`, `.quiz-exercise` com `id="quiz-..."`, `.quiz-option` + `data-valor`.
+  `.dnd-column` + `data-column-id` (sorting), `.dnd-label`, `.dnd-row`, `.quiz-exercise` com
+  `id="quiz-..."`, `.quiz-option` + `data-valor`, `.flashcard` (pra detecção do baralho),
+  `.reveal-btn`/`.reveal-content` com `data-target`/`id` combinando.
 - **Cosmético** (só CSS de layout, o JS nunca lê essas classes): `formato-fill`,
-  `formato-unjumble`, `formato-matchup`. Pode remover sem quebrar a funcionalidade.
+  `formato-unjumble`, `formato-matchup`, `formato-sorting`, `.reading-passage`, `.embed-video`,
+  `.link-card` + `.link-card-label`/`.link-card-title`/`.link-card-url`. Pode remover sem quebrar
+  a funcionalidade (mas quebra o visual pretendido daquele tipo de bloco).
 
 ## Limitação conhecida
 
 No painel, "Ver respostas" mostra o valor salvo cru — pra drag-and-drop isso é um JSON
-tipo `{"t1":"p2","t2":"p1"}`, não uma frase legível. A conferência do trabalho do aluno continua
-sendo feita na própria página dele, comparando com o `.reveal-content` (gabarito), como já é o
-fluxo hoje pros outros exercícios.
+(`{"t1":"p2","t2":"p1"}` pros formatos de alvo único, `{"p1":"c1","p2":"c2"}` pro sorting), não
+uma frase legível. A conferência do trabalho do aluno continua sendo feita na própria página
+dele, comparando com o `.reveal-content` (gabarito), como já é o fluxo hoje pros outros
+exercícios.
