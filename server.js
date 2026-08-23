@@ -113,6 +113,24 @@ const server = http.createServer(async (req, res) => {
       await db.execute({ sql: `INSERT INTO respostas (sessao_id, campo_id, valor, atualizada_em) VALUES (?, ?, ?, ?) ON CONFLICT(sessao_id, campo_id) DO UPDATE SET valor = excluded.valor, atualizada_em = excluded.atualizada_em`, args: [sessao_id, campo_id, valor || '', new Date().toISOString()] });
       return responderJSON(res, 200, { ok: true });
     }
+    // ---- API: dados completos (conteúdo + respostas) de uma ou várias sessões, ----
+    // ---- para reconstruir as respostas em palavras (Ver respostas / exportação). ----
+    if (rota === '/api/exportar' && req.method === 'POST') {
+      const { senha, sessao_ids } = await lerCorpo(req);
+      if (senha !== SENHA_PAINEL) return responderJSON(res, 403, { erro: 'senha' });
+      if (!Array.isArray(sessao_ids) || sessao_ids.length === 0) return responderJSON(res, 400, { erro: 'faltando' });
+      const sessoes = [];
+      for (const sid of sessao_ids) {
+        const s = await db.execute({ sql: 'SELECT id, titulo, conteudo_html, data_sessao, criada_em, finalizada_em FROM sessoes WHERE id = ?', args: [sid] });
+        if (s.rows.length === 0) continue;
+        const r = await db.execute({ sql: 'SELECT campo_id, valor FROM respostas WHERE sessao_id = ?', args: [sid] });
+        const respostas = {};
+        r.rows.forEach((row) => { respostas[row.campo_id] = row.valor; });
+        const row = s.rows[0];
+        sessoes.push({ id: row.id, titulo: row.titulo, conteudo_html: row.conteudo_html, data_sessao: row.data_sessao, criada_em: row.criada_em, finalizada_em: row.finalizada_em, respostas });
+      }
+      return responderJSON(res, 200, { sessoes });
+    }
     if (rota === '/api/deletar-sessao' && req.method === 'POST') {
       const { senha, sessao_id } = await lerCorpo(req);
       if (senha !== SENHA_PAINEL) return responderJSON(res, 403, { erro: 'senha' });

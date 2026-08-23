@@ -63,8 +63,21 @@
   .aluno-nome{font-family:var(--font-display); font-weight:700; font-size:18px;}
   .link-box{font-family:var(--font-body); font-size:12px; background:var(--amber-1); padding:8px 12px; border-radius:2px; margin-top:8px; word-break:break-all; cursor:pointer;}
   .status{font-family:var(--font-label); font-weight:600; font-size:12px; color:var(--ink-amber); margin-top:10px; min-height:16px;}
-  .resposta-item{border-left:3px solid var(--amber-bold); padding:8px 14px; margin:10px 0; background:var(--amber-1); font-size:14px;}
+  .resposta-item{border-left:3px solid var(--amber-bold); padding:10px 14px; margin:10px 0; background:var(--amber-1); font-size:14px;}
   .resposta-campo{font-family:var(--font-label); font-weight:600; font-size:11px; color:var(--ink-amber); text-transform:uppercase; letter-spacing:0.05em;}
+  .rec-pergunta{font-weight:700; font-size:13.5px; margin-top:4px;}
+  .rec-contexto{font-size:12.5px; color:#6b7178; font-style:italic; margin-top:4px;}
+  .rec-resposta{font-size:14px; margin-top:4px;}
+  .rec-gabarito{font-size:12.5px; color:#4a7a3a; margin-top:6px; padding-top:6px; border-top:1px dashed var(--line);}
+  .exp-linha{display:inline-flex; align-items:center; gap:8px; font-weight:400; margin:0;}
+  .exp-linha input{width:auto;}
+  .export-bar{margin-top:16px; padding-top:14px; border-top:1px dashed var(--line);}
+  .export-bar button{margin-top:0;}
+  .export-titulo{display:block; font-family:var(--font-label); font-weight:700; font-size:11.5px; letter-spacing:0.05em; text-transform:uppercase; color:var(--ink-amber); margin-bottom:10px;}
+  .export-atalhos{display:flex; flex-wrap:wrap; align-items:center; gap:8px;}
+  .export-acoes{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:12px;}
+  .export-custom{display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--charcoal);}
+  .export-meses{width:56px; padding:6px 8px; margin:0;}
   .divisor{border:none; border-top:1px dashed var(--line); margin:22px 0;}
   .small{font-size:12.5px; color:#80868d;}
 </style>
@@ -150,6 +163,207 @@ let senhaAtual = '';
 let dadosPainel = { alunos: [], sessoes: [] };
 let sessaoEditandoId = null;
 
+/* ============================================================================
+   RECONSTRUÇÃO DE RESPOSTAS EM PALAVRAS LEGÍVEIS
+   Cruza o valor salvo (JSON de ids no drag-and-drop, letra no quiz) com o HTML
+   da própria lição pra descobrir a que palavra cada id corresponde, e monta uma
+   frase/lista legível. Usada tanto pelo "Ver respostas" quanto pela exportação.
+   Roda no navegador (DOMParser), sem dependências novas.
+   ============================================================================ */
+
+function textoLimpo(el){ if(!el) return ''; return (el.textContent || '').replace(/\s+/g, ' ').trim(); }
+
+// Gabarito de um exercício = o .reveal-content do mesmo bloco (nunca o verso do
+// flashcard). Se não houver, devolve null — a exportação não quebra por isso.
+function acharGabarito(bloco, doc){
+  if(!bloco) return null;
+  const btn = bloco.querySelector('.reveal-btn[data-target]');
+  if(btn){
+    const alvo = doc.getElementById(btn.getAttribute('data-target'));
+    if(alvo && !alvo.classList.contains('flashcard-back')) return textoLimpo(alvo);
+  }
+  const rc = bloco.querySelector('.reveal-content:not(.flashcard-back)');
+  return rc ? textoLimpo(rc) : null;
+}
+
+const NAO_RESP = '(não respondido)';
+const PECA_SUMIU = '⚠️[peça não encontrada]';
+
+// Tema da sessão = o <h2> do primeiro bloco só explicativo (sem exercício nem
+// reading/vídeo/link). Só o rótulo, não o parágrafo.
+function acharTema(raiz){
+  const blocos = raiz.querySelectorAll('section.block, .card');
+  for(const b of blocos){
+    const temExercicio = b.querySelector('[id^="dnd-"], [id^="quiz-"], textarea, .flashcard, .reading-passage, .embed-video, .link-card');
+    if(temExercicio) continue;
+    const h = b.querySelector('h2, h3');
+    if(h) return textoLimpo(h);
+  }
+  return null;
+}
+
+function reconstruirFrase(p, estado, pecas){
+  let out = '';
+  p.childNodes.forEach(no=>{
+    if(no.nodeType === 3){ out += no.textContent; }
+    else if(no.nodeType === 1){
+      if(no.classList && no.classList.contains('dnd-target')){
+        const pid = estado[no.getAttribute('data-target-id')];
+        out += pid ? ('**' + (pecas[pid] || PECA_SUMIU) + '**') : '[___]';
+      } else { out += no.textContent; }
+    }
+  });
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+function reconstruirDnd(container, valorSalvo, doc){
+  let estado = {};
+  if(valorSalvo){ try{ estado = JSON.parse(valorSalvo) || {}; }catch(e){ estado = {}; } }
+  const pergunta = textoLimpo(container.querySelector('.qtext'));
+  const bloco = container.closest('section.block, .card') || container;
+  const gabarito = acharGabarito(bloco, doc);
+  const pecas = {};
+  container.querySelectorAll('.dnd-piece[data-piece-id]').forEach(p=>{ pecas[p.getAttribute('data-piece-id')] = textoLimpo(p); });
+
+  // Sorting: colunas, estado {pieceId: columnId}.
+  if(container.querySelector('.dnd-column')){
+    const linhas = [];
+    container.querySelectorAll('.dnd-column[data-column-id]').forEach(col=>{
+      const colId = col.getAttribute('data-column-id');
+      const rotulo = textoLimpo(col.querySelector('.dnd-column-label')) || colId;
+      const itens = Object.keys(estado).filter(pid => estado[pid] === colId).map(pid => pecas[pid] || PECA_SUMIU);
+      linhas.push(`${rotulo}: ${itens.length ? itens.join(', ') : '—'}`);
+    });
+    const naoClass = Object.keys(pecas).filter(pid => !(pid in estado)).map(pid=>pecas[pid]);
+    if(naoClass.length) linhas.push(`Não classificadas: ${naoClass.join(', ')}`);
+    return { tipo:'Classificar (sorting)', pergunta, resposta: linhas.join('\n'), gabarito };
+  }
+
+  // Alvo único: estado {targetId: pieceId}.
+  const alvos = Array.from(container.querySelectorAll('.dnd-target[data-target-id]'));
+  const temLabel = !!container.querySelector('.dnd-label');
+  const alvosEmLinha = alvos.length && alvos.every(t => t.closest('.dnd-row'));
+
+  if(temLabel){ // match up
+    const linhas = [];
+    container.querySelectorAll('.dnd-row').forEach(row=>{
+      const rotulo = textoLimpo(row.querySelector('.dnd-label'));
+      const alvo = row.querySelector('.dnd-target[data-target-id]');
+      if(!alvo) return;
+      const pid = estado[alvo.getAttribute('data-target-id')];
+      linhas.push(`${rotulo} → ${pid ? (pecas[pid] || PECA_SUMIU) : NAO_RESP}`);
+    });
+    return { tipo:'Ligar colunas (match up)', pergunta, resposta: linhas.join('\n'), gabarito };
+  }
+  if(alvosEmLinha){ // unjumble
+    const palavras = alvos.map(t=>{ const pid = estado[t.getAttribute('data-target-id')]; return pid ? (pecas[pid] || PECA_SUMIU) : '___'; });
+    return { tipo:'Ordenar (unjumble)', pergunta, resposta: palavras.join(' '), gabarito };
+  }
+  const paras = Array.from(container.querySelectorAll('p')).filter(p => p.querySelector('.dnd-target') && !p.classList.contains('qtext'));
+  if(paras.length){ // fill
+    return { tipo:'Completar a frase (fill)', pergunta, resposta: paras.map(p => reconstruirFrase(p, estado, pecas)).join(' '), gabarito };
+  }
+  // fallback estrutural
+  const linhas = alvos.map(t=>{ const pid = estado[t.getAttribute('data-target-id')]; return `${t.getAttribute('data-target-id')} → ${pid ? (pecas[pid]||PECA_SUMIU) : NAO_RESP}`; });
+  return { tipo:'Arrastar e soltar', pergunta, resposta: linhas.join('\n'), gabarito };
+}
+
+function reconstruirQuiz(container, valorSalvo, doc){
+  const pergunta = textoLimpo(container.querySelector('.qtext'));
+  const bloco = container.closest('section.block, .card') || container;
+  const gabarito = acharGabarito(bloco, doc);
+  let resposta = NAO_RESP;
+  if(valorSalvo){
+    const opt = container.querySelector('.quiz-option[data-valor="' + valorSalvo.replace(/"/g,'') + '"]');
+    resposta = opt ? textoLimpo(opt) : `⚠️ [não foi possível reconstruir — opção "${valorSalvo}" não existe mais no conteúdo]`;
+  }
+  return { tipo:'Quiz', pergunta, resposta, gabarito };
+}
+
+// Devolve { tema, itens[] }. itens em ordem de aparição; só produção do aluno.
+function reconstruirSessao(conteudoHtml, respostas){
+  respostas = respostas || {};
+  const doc = new DOMParser().parseFromString('<div id="raiz">' + conteudoHtml + '</div>', 'text/html');
+  const raiz = doc.getElementById('raiz');
+  const tema = acharTema(raiz);
+  const itens = [];
+  const jaVistos = new Set();
+  const nos = Array.from(raiz.querySelectorAll('[id^="dnd-"], [id^="quiz-"], textarea[id^="ta-"], .flashcard'));
+
+  let i = 0;
+  while(i < nos.length){
+    const el = nos[i];
+    if(el.classList && el.classList.contains('flashcard')){
+      const grupo = [el]; let j = i + 1;
+      while(j < nos.length && nos[j].classList && nos[j].classList.contains('flashcard')){ grupo.push(nos[j]); j++; }
+      const vocab = grupo.map(fc=>{ const f = textoLimpo(fc.querySelector('.flashcard-front')); const v = textoLimpo(fc.querySelector('.flashcard-back')); return v ? `${f} — ${v}` : f; });
+      const primeiraCosta = grupo[0].querySelector('.reveal-content.flashcard-back');
+      const idBase = primeiraCosta ? primeiraCosta.id : null;
+      const taId = idBase ? ('ta-reflect-' + idBase) : null;
+      // A pergunta de reflexão do flashcard é injetada pelo aluno.html a partir do
+      // TEXTOS (configurável), não faz parte do conteudo_html — por isso o rótulo
+      // fica só no tipo, sem chutar o texto da pergunta.
+      if(taId && respostas[taId] !== undefined && respostas[taId] !== ''){
+        jaVistos.add(taId);
+        itens.push({ tipo:'Flashcards — reflexão', pergunta:null, resposta: respostas[taId], gabarito:null, contexto:'Vocabulário revisado: ' + vocab.join(' · ') });
+      } else {
+        itens.push({ tipo:'Flashcards (vocabulário revisado)', pergunta:null, resposta:null, gabarito:null, contexto: vocab.join(' · ') });
+      }
+      i = j; continue;
+    }
+    const id = el.id;
+    if(el.tagName === 'TEXTAREA'){
+      if(respostas[id] !== undefined && respostas[id] !== ''){
+        jaVistos.add(id);
+        const bloco = el.closest('section.block, .card') || el;
+        const pergunta = textoLimpo(bloco.querySelector('.qtext')) || textoLimpo(bloco.querySelector('h2, h3')) || '(texto livre)';
+        itens.push({ tipo:'Texto livre', pergunta, resposta: respostas[id], gabarito: acharGabarito(bloco, doc) });
+      }
+      i++; continue;
+    }
+    if(id.indexOf('dnd-') === 0){ const v = respostas[id]; if(v !== undefined && v !== ''){ jaVistos.add(id); itens.push(reconstruirDnd(el, v, doc)); } i++; continue; }
+    if(id.indexOf('quiz-') === 0){ const v = respostas[id]; if(v !== undefined && v !== ''){ jaVistos.add(id); itens.push(reconstruirQuiz(el, v, doc)); } i++; continue; }
+    i++;
+  }
+  // Pergunta de fechamento: id fixo, injetada pelo aluno.html via TEXTOS (não está
+  // no conteudo_html) — rótulo só no tipo, sem chutar o texto da pergunta.
+  if(respostas['ta-session-reflect'] !== undefined && respostas['ta-session-reflect'] !== ''){
+    jaVistos.add('ta-session-reflect');
+    itens.push({ tipo:'Fechamento da sessão', pergunta:null, resposta: respostas['ta-session-reflect'], gabarito:null });
+  }
+  // Rede de segurança: resposta salva que não bateu com o HTML atual (conteúdo
+  // editado depois). Aviso em texto puro (⚠️), não some com o dado.
+  Object.keys(respostas).forEach(cid=>{
+    if(!jaVistos.has(cid) && respostas[cid] !== undefined && respostas[cid] !== ''){
+      itens.push({ tipo:'⚠️ [não foi possível reconstruir — campo não encontrado no conteúdo atual]', pergunta: cid, resposta: respostas[cid], gabarito:null });
+    }
+  });
+  return { tema, itens };
+}
+
+function escaparHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Um item -> HTML (para o "Ver respostas"). Converte **negrito** e quebras de linha.
+function itemParaHtml(it){
+  const fmt = s => escaparHtml(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  let h = `<div class="resposta-campo">${escaparHtml(it.tipo)}</div>`;
+  if(it.pergunta) h += `<div class="rec-pergunta">${escaparHtml(it.pergunta)}</div>`;
+  if(it.contexto) h += `<div class="rec-contexto">${escaparHtml(it.contexto)}</div>`;
+  if(it.resposta) h += `<div class="rec-resposta">${fmt(it.resposta)}</div>`;
+  if(it.gabarito) h += `<div class="rec-gabarito">Esperado: ${escaparHtml(it.gabarito)}</div>`;
+  return `<div class="resposta-item">${h}</div>`;
+}
+
+// Um item -> markdown (para o arquivo exportado).
+function itemParaMarkdown(it){
+  let b = `**${it.tipo}**`;
+  if(it.pergunta) b += `\n_Pergunta:_ ${it.pergunta}`;
+  if(it.contexto) b += `\n_${it.contexto.startsWith('Vocab') ? '' : 'Contexto: '}${it.contexto}_`;
+  if(it.resposta) b += `\n_Resposta do aluno:_ ${it.resposta.replace(/\n/g, '\n  ')}`;
+  if(it.gabarito) b += `\n_Esperado (gabarito):_ ${it.gabarito}`;
+  return b;
+}
+
 async function entrar(){
   const senha = document.getElementById('senha').value;
   const r = await fetch('/api/painel', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha }) });
@@ -178,13 +392,28 @@ function renderizar(){
       ? '<p class="small">Sem sessões ainda.</p>'
       : sessoesAluno.map(s => {
           const fin = s.finalizada_em ? '<span class="selo-fin">✓ finalizada</span>' : '<span class="selo-aberta">em aberto</span>';
-          return `<div class="sessao-item"><strong>${s.titulo}</strong> ${fin}<br>
+          return `<div class="sessao-item">
+            <label class="exp-linha"><input type="checkbox" class="exp-check" data-aluno="${a.id}" value="${s.id}"><strong>${s.titulo}</strong> ${fin}</label><br>
             <button class="ghost" onclick="verRespostas(${s.id}, '${s.titulo.replace(/'/g,"")}')">Ver respostas</button>
             <button class="ghost" onclick="renomearSessao(${s.id}, '${s.titulo.replace(/'/g,"")}', '${s.data_sessao || ''}')">Renomear</button>
             <button class="ghost" onclick="editarConteudo(${s.id})">Editar conteúdo</button>
             <button class="ghost danger" onclick="deletarSessao(${s.id}, '${s.titulo.replace(/'/g,"")}')">Deletar</button>
           </div>`;
         }).join('');
+    const exportBar = qtd === 0 ? '' : `<div class="export-bar">
+        <span class="export-titulo">Exportar respostas</span>
+        <div class="export-atalhos">
+          <button class="ghost" onclick="marcarTodasExport(${a.id}, true)">Todas</button>
+          <button class="ghost" onclick="marcarUltimosDias(${a.id}, 30)">Últimos 30 dias</button>
+          <button class="ghost" onclick="marcarUltimosMeses(${a.id}, 2)">Últimos 2 meses</button>
+          <button class="ghost" onclick="marcarUltimosMeses(${a.id}, 3)">Últimos 3 meses</button>
+          <span class="export-custom">Últimos <input type="number" min="1" class="export-meses" data-aluno="${a.id}" onkeydown="if(event.key==='Enter'){event.preventDefault();marcarUltimosMesesInput(${a.id});}"> meses <button class="ghost" onclick="marcarUltimosMesesInput(${a.id})">Aplicar</button></span>
+        </div>
+        <div class="export-acoes">
+          <button class="ghost" onclick="marcarTodasExport(${a.id}, false)">Limpar</button>
+          <button onclick="exportarSelecionadas(${a.id}, '${a.nome.replace(/'/g,"")}')">Exportar selecionadas (.md)</button>
+        </div>
+      </div>`;
     return `<div class="aluno-item">
       <div class="aluno-cabecalho" onclick="toggleAluno('aluno-${a.id}')">
         <span class="aluno-nome">${a.nome} ${selo}</span>
@@ -197,6 +426,7 @@ function renderizar(){
           <button class="ghost danger" onclick="deletarAluno(${a.id}, '${a.nome.replace(/'/g,"")}')">Deletar aluno</button>
         </div>
         <div style="margin-top:12px;">${sessoesHtml}</div>
+        ${exportBar}
       </div>
     </div>`;
   }).join('');
@@ -241,14 +471,19 @@ async function criarSessao(){
 }
 
 async function verRespostas(sessaoId, titulo){
-  const r = await fetch('/api/respostas', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, sessao_id: sessaoId }) });
+  const r = await fetch('/api/exportar', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, sessao_ids: [sessaoId] }) });
   const d = await r.json();
   document.getElementById('respostas-titulo').innerText = 'Respostas: ' + titulo;
   const lista = document.getElementById('lista-respostas');
-  if(!d.respostas || d.respostas.length === 0){
+  const sessao = d.sessoes && d.sessoes[0];
+  const temResposta = sessao && sessao.respostas && Object.keys(sessao.respostas).some(k => sessao.respostas[k] !== undefined && sessao.respostas[k] !== '');
+  if(!temResposta){
     lista.innerHTML = '<p class="small">Este aluno ainda não respondeu nada nesta sessão.</p>';
   } else {
-    lista.innerHTML = d.respostas.map(r => `<div class="resposta-item"><div class="resposta-campo">${r.campo_id}</div>${r.valor || '<em>(vazio)</em>'}</div>`).join('');
+    const { itens } = reconstruirSessao(sessao.conteudo_html, sessao.respostas);
+    lista.innerHTML = itens.length
+      ? itens.map(itemParaHtml).join('')
+      : '<p class="small">Este aluno ainda não respondeu nada nesta sessão.</p>';
   }
   document.getElementById('respostas-card').classList.remove('hidden');
   document.getElementById('respostas-card').scrollIntoView({ behavior:'smooth' });
@@ -314,6 +549,95 @@ async function deletarAluno(alunoId, nome){
   if(!r.ok){ alert('Erro ao deletar. Tente de novo.'); return; }
   document.getElementById('respostas-card').classList.add('hidden');
   await recarregar();
+}
+
+function marcarTodasExport(alunoId, marcar){
+  document.querySelectorAll('.exp-check[data-aluno="' + alunoId + '"]').forEach(c => { c.checked = marcar; });
+}
+
+// Data local (YYYY-MM-DD) — mesmo formato de chaveCronologica, pra comparar como string.
+function corteISO(date){
+  const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// Atalhos de período: MARCAM (sem desmarcar) as sessões cuja data cai a partir do corte.
+// Usam o mesmo critério da exportação: data_sessao, ou criada_em se a data não foi preenchida.
+function marcarPorCorte(alunoId, corte){
+  const mapa = {};
+  dadosPainel.sessoes.forEach(s => { mapa[s.id] = s; });
+  document.querySelectorAll('.exp-check[data-aluno="' + alunoId + '"]').forEach(c => {
+    const s = mapa[Number(c.value)];
+    if(!s) return;
+    const k = chaveCronologica(s);
+    if(k && k >= corte) c.checked = true;
+  });
+}
+
+function marcarUltimosDias(alunoId, dias){
+  const d = new Date(); d.setDate(d.getDate() - dias);
+  marcarPorCorte(alunoId, corteISO(d));
+}
+
+function marcarUltimosMeses(alunoId, meses){
+  const d = new Date(); d.setMonth(d.getMonth() - meses);
+  marcarPorCorte(alunoId, corteISO(d));
+}
+
+function marcarUltimosMesesInput(alunoId){
+  const inp = document.querySelector('.export-meses[data-aluno="' + alunoId + '"]');
+  const n = Number(inp && inp.value);
+  if(!n || n < 1){ alert('Digite um número de meses maior que zero.'); return; }
+  marcarUltimosMeses(alunoId, n);
+}
+
+// Formata a data da sessão pro cabeçalho do arquivo.
+function dataSessaoLegivel(s){
+  if(s.data_sessao){
+    const p = s.data_sessao.split('-');
+    if(p.length === 3){
+      const dt = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+      return 'Data da aula: ' + dt.toLocaleDateString('pt-BR', { day:'numeric', month:'long', year:'numeric' });
+    }
+  }
+  return 'Data de criação: ' + new Date(s.criada_em).toLocaleDateString('pt-BR', { day:'numeric', month:'long', year:'numeric' });
+}
+
+// Chave cronológica: data da aula quando existe, senão a data de criação.
+function chaveCronologica(s){ return s.data_sessao || (s.criada_em || '').slice(0,10) || ''; }
+
+async function exportarSelecionadas(alunoId, nome){
+  const ids = Array.from(document.querySelectorAll('.exp-check[data-aluno="' + alunoId + '"]:checked')).map(c => Number(c.value));
+  if(ids.length === 0){ alert('Selecione ao menos uma sessão para exportar.'); return; }
+  const r = await fetch('/api/exportar', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ senha: senhaAtual, sessao_ids: ids }) });
+  if(!r.ok){ alert('Erro ao buscar as sessões. Tente de novo.'); return; }
+  const d = await r.json();
+  const sessoes = (d.sessoes || []).slice().sort((a, b) => chaveCronologica(a).localeCompare(chaveCronologica(b)));
+
+  const hoje = new Date().toLocaleDateString('pt-BR', { day:'numeric', month:'long', year:'numeric' });
+  let md = `# Respostas de ${nome}\n\n`;
+  md += `_Exportado do painel em ${hoje}. Sessões em ordem cronológica. As respostas foram reconstruídas em palavras a partir do que o aluno montou na plataforma (drag-and-drop e quiz não aparecem como código, mas como as palavras/frases que o aluno escolheu)._\n\n---\n\n`;
+
+  const blocos = sessoes.map(s => {
+    const { tema, itens } = reconstruirSessao(s.conteudo_html, s.respostas);
+    let bloco = `## ${s.titulo}\n_${dataSessaoLegivel(s)}_\n`;
+    if(tema) bloco += `_Tema: ${tema}_\n`;
+    bloco += '\n';
+    bloco += itens.length ? itens.map(itemParaMarkdown).join('\n\n') : '_(Sem respostas nesta sessão.)_';
+    return bloco;
+  });
+  md += blocos.join('\n\n---\n\n') + '\n';
+
+  const slug = (nome.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) || 'aluno';
+  const hojeArquivo = new Date().toISOString().slice(0,10);
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `respostas-${slug}-${hojeArquivo}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
 async function recarregar(){

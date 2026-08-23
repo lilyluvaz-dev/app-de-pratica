@@ -258,10 +258,33 @@ precisa (ou deve) colar — é automático, igual a pergunta de reflexão do fla
   `.link-card` + `.link-card-label`/`.link-card-title`/`.link-card-url`. Pode remover sem quebrar
   a funcionalidade (mas quebra o visual pretendido daquele tipo de bloco).
 
-## Limitação conhecida
+## Como as respostas viram texto legível (painel e exportação)
 
-No painel, "Ver respostas" mostra o valor salvo cru — pra drag-and-drop isso é um JSON
-(`{"t1":"p2","t2":"p1"}` pros formatos de alvo único, `{"p1":"c1","p2":"c2"}` pro sorting), não
-uma frase legível. A conferência do trabalho do aluno continua sendo feita na própria página
-dele, comparando com o `.reveal-content` (gabarito), como já é o fluxo hoje pros outros
-exercícios.
+O drag-and-drop salva um JSON de ids (`{"t1":"p2"}` pros formatos de alvo único,
+`{"p1":"c1"}` pro sorting) e o quiz salva a letra do `data-valor` (`"b"`). Isso é cru e
+ilegível, mas o painel **reconstrói em palavras** cruzando esses ids com o próprio HTML da
+lição (`conteudo_html`): descobre que `p2` era "went", que `t1` era tal lacuna, etc. Vale pra
+"Ver respostas" e pra exportação, ambos em `public/painel.html` (função `reconstruirSessao`,
+que roda no navegador via `DOMParser`).
+
+O que isso significa pra quem gera o HTML da lição: **nada muda**. A reconstrução depende só
+das convenções de marcação que este arquivo já exige (`data-piece-id`, `data-target-id`,
+`data-column-id`, `.dnd-label`, `.quiz-option`+`data-valor`, `.flashcard`). Se a marcação
+estiver certa, a frase legível sai sozinha. Cada formato vira uma forma natural: fill remonta
+a frase com as palavras nas lacunas, unjumble junta as palavras na ordem, matchup lista
+"rótulo → palavra", sorting lista "coluna: itens", quiz mostra o texto da opção escolhida.
+
+O gabarito (quando o exercício tem `.reveal-btn`/`.reveal-content`) também entra na exportação
+como "Esperado", pra IA saber o que era o certo. Se não houver `.reveal-content`, a linha
+some sem quebrar nada. Se um id salvo não bater com o HTML atual (conteúdo editado depois que
+o aluno respondeu), o valor cru é preservado com um aviso `⚠️` em texto — nunca some.
+
+## Exportar respostas pra análise de IA
+
+No painel, dentro de cada aluno, dá pra selecionar sessões (checkbox individual, "Todas", ou
+os atalhos de data — últimos 30 dias / 2 / 3 / N meses, que marcam as sessões do período sem
+desmarcar o resto) e baixar um `.md` único, em ordem cronológica, com as respostas já
+reconstruídas em palavras. A ideia é levar esse arquivo a uma IA pra analisar padrões de
+progresso ao longo do tempo. Cada sessão leva título, data e o rótulo do tema (o `<h2>` do
+primeiro bloco só explicativo) como contexto; só entra o que o aluno produziu — bloco
+puramente explicativo, reading ou vídeo fica de fora do corpo.
