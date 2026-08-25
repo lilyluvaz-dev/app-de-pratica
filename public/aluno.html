@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>After the Lesson</title>
+<!-- Immersive Reader SDK (Azure): expõe o global ImmersiveReader. Pinado por versão no jsDelivr.
+     Add-on opcional — o botão só é injetado se o servidor tiver as 4 IR_* configuradas. -->
+<script src="https://cdn.jsdelivr.net/npm/@microsoft/immersive-reader-sdk@1.4.0/lib/immersive-reader-sdk.js"></script>
 <style>
   /* ---- Paleta e tipografia: troque só aqui pra personalizar o visual ----
      Cor: os nomes das variáveis (--amber-bold etc.) ficaram assim por
@@ -167,6 +170,11 @@
   .reading-passage{max-width:620px; margin:0 auto; line-height:1.8; font-size:16px;}
   .reading-passage p{margin:0 0 18px 0;}
   .reading-passage p:last-child{margin-bottom:0;}
+  /* Botão "modo leitura assistida" — injetado só nos blocos de reading pelo aluno.html (initImmersiveReader). */
+  .ir-btn{display:inline-flex; align-items:center; gap:8px; font-family:var(--font-label); font-weight:700; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; background:var(--amber-bold); border:none; color:var(--charcoal); padding:9px 18px; border-radius:22px; cursor:pointer; margin:0 0 22px 0; box-shadow:0 8px 18px -10px rgba(0,0,0,0.45);}
+  .ir-btn:hover{background:var(--amber-2);}
+  .ir-btn:disabled{opacity:.6; cursor:default;}
+  .ir-btn .ir-btn-icon{font-size:11px; line-height:1;}
 
   /* ---- Link/embed: vídeo (iframe que o professor cola) ou artigo externo (card, abre em nova aba) ---- */
   .embed-video{position:relative; width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#000; margin:6px 0 0 0;}
@@ -299,6 +307,7 @@ function render(d){
   initDragDrop(d);
   initQuiz(d);
   initFlashcards(d);
+  initImmersiveReader(d);
   adicionarPerguntaFechamento(d);
   carregarAcervo(d.sessao.id);
   renderFinalizar(d.sessao.finalizada_em);
@@ -647,6 +656,71 @@ function montarBaralho(elementos, containerPai, d){
   const ta = reflexao.querySelector('textarea');
   if(d.respostas[taId] !== undefined){ ta.value = d.respostas[taId]; }
   ta.addEventListener('input', ()=>agendarSalvar(taId, ta.value));
+}
+
+/* ---- Reading: botão "modo leitura assistida" (Microsoft Immersive Reader).
+   Só entra nos blocos de reading (.reading-passage) — nunca em enunciados, explicações ou
+   exercícios. O texto da passagem é mandado pro Immersive Reader (voz, velocidade, destaque de
+   substantivo/verbo, dicionário de imagem etc., tudo que ele já traz). O token temporário vem
+   do servidor (/api/immersive-token), gerado a partir dos 4 segredos da Azure.
+   Add-on opcional: sem as 4 IR_* configuradas no servidor, o botão nem nasce. ---- */
+
+let irTokenCache = null;
+
+async function pegarTokenIR(){
+  if(irTokenCache && Date.now() < irTokenCache.expira) return irTokenCache;
+  const r = await fetch('/api/immersive-token');
+  const d = await r.json().catch(()=>({}));
+  if(!r.ok || !d.token) throw new Error(d.detalhe || 'sem token');
+  // o token da Azure vale ~1h; guardamos por 50 min pra renovar com folga
+  irTokenCache = { token: d.token, subdomain: d.subdomain, expira: Date.now() + 50*60*1000 };
+  return irTokenCache;
+}
+
+async function initImmersiveReader(d){
+  if(typeof ImmersiveReader === 'undefined') return; // SDK não carregou (offline etc.): reading segue normal, só sem o botão
+  const passagens = document.querySelectorAll('.reading-passage');
+  if(passagens.length === 0) return; // sessão sem reading: nem consulta o servidor
+  // Só injeta o botão se o servidor tiver as 4 IR_* configuradas. Assim, um deploy sem Immersive
+  // Reader (ex.: template distribuído) simplesmente não mostra o botão, em vez de mostrar um que
+  // dá erro ao clicar. Consulta leve (não gera token).
+  try{
+    const r = await fetch('/api/immersive-config');
+    const cfg = await r.json().catch(()=>({}));
+    if(!cfg.enabled) return;
+  }catch(e){ return; } // servidor não respondeu: melhor não mostrar o botão do que mostrar um quebrado
+  passagens.forEach(passage=>{
+    const bloco = passage.closest('section.block, .card') || passage.parentElement;
+    const heading = bloco ? bloco.querySelector('h1, h2, h3, h4') : null;
+    const titulo = heading ? heading.textContent.trim() : 'Reading';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ir-btn';
+    btn.innerHTML = '<span class="ir-btn-icon">▶</span> Open in assisted reading';
+    btn.addEventListener('click', ()=>abrirImmersive(passage, titulo, btn));
+    passage.insertAdjacentElement('beforebegin', btn);
+  });
+}
+
+async function abrirImmersive(passage, titulo, btn){
+  const rotulo = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="ir-btn-icon">▶</span> Loading…';
+  try{
+    const cfg = await pegarTokenIR();
+    // um chunk por parágrafo preserva a estrutura da leitura dentro do Immersive Reader
+    let chunks = Array.from(passage.querySelectorAll('p'))
+      .map(p => ({ content: p.innerText.trim(), lang: 'en', mimeType: 'text/plain' }))
+      .filter(c => c.content);
+    if(chunks.length === 0){ chunks = [{ content: passage.innerText.trim(), lang: 'en', mimeType: 'text/plain' }]; }
+    await ImmersiveReader.launchAsync(cfg.token, cfg.subdomain, { title: titulo, chunks }, { uiLang: 'en' });
+  }catch(e){
+    console.error('Immersive Reader:', e);
+    alert('Could not open assisted reading right now. Please try again in a moment.');
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = rotulo;
+  }
 }
 
 /* ---- Pergunta de fechamento: sempre a última coisa da sessão, id fixo (não depende de

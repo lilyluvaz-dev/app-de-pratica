@@ -192,6 +192,20 @@ bloco, mas dá um nome descritivo (`leitura-1` etc.).
 </section>
 ```
 
+**Add-on opcional — botão "Open in assisted reading" (Microsoft Immersive Reader).** Se o
+servidor tiver a leitura assistida configurada, o `aluno.html` injeta automaticamente, logo acima
+de cada `.reading-passage`, um botão que abre aquele texto no Immersive Reader da Azure — com voz,
+controle de velocidade, destaque de substantivo/verbo, dicionário de imagem e tradução, tudo que a
+ferramenta já traz. O botão só aparece nos blocos de reading; enunciados, explicações e exercícios
+nunca ganham esse botão.
+
+Pra quem gera o HTML da lição, **nada muda**: basta usar `.reading-passage` como sempre — o botão é
+automático, não se cola na mão. Cada parágrafo (`<p>`) da passagem vira um "chunk" no leitor, e o
+`<h3>`/`<h2>` do bloco vira o título dentro do Immersive Reader. É um add-on **opcional**: depende de
+4 variáveis de ambiente (`IR_*`) que quem publica configura no servidor se/quando quiser (ver
+`LEIA-ME.md`). Se elas não estiverem configuradas, ou se o SDK não carregar (aluno offline, por
+exemplo), a leitura continua funcionando normalmente — só sem o botão, nunca um botão que dá erro.
+
 ## Link/embed (vídeo ou artigo externo)
 
 **Vídeo**: cole o código de embed que o próprio YouTube (ou Vimeo etc.) fornece — em "Compartilhar
@@ -254,9 +268,12 @@ precisa (ou deve) colar — é automático, igual a pergunta de reflexão do fla
   `id="quiz-..."`, `.quiz-option` + `data-valor`, `.flashcard` (pra detecção do baralho),
   `.reveal-btn`/`.reveal-content` com `data-target`/`id` combinando.
 - **Cosmético** (só CSS de layout, o JS nunca lê essas classes): `formato-fill`,
-  `formato-unjumble`, `formato-matchup`, `formato-sorting`, `.reading-passage`, `.embed-video`,
+  `formato-unjumble`, `formato-matchup`, `formato-sorting`, `.embed-video`,
   `.link-card` + `.link-card-label`/`.link-card-title`/`.link-card-url`. Pode remover sem quebrar
   a funcionalidade (mas quebra o visual pretendido daquele tipo de bloco).
+- **Meio-termo**: `.reading-passage` é cosmético pro visual do bloco, mas o JS **lê** essa classe
+  pra injetar o botão do Immersive Reader (ver seção Reading). Remover a classe tira o botão, mas
+  não quebra nada além disso — o texto continua legível.
 
 ## Como as respostas viram texto legível (painel e exportação)
 

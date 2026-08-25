@@ -53,6 +53,36 @@ function gerarCodigo(nome) {
   return `${base}-${sufixo}`;
 }
 
+// ---- Immersive Reader (Azure): gera um token temporario a partir dos 4 segredos que vivem
+// como variaveis de ambiente (IR_TENANT_ID, IR_CLIENT_ID, IR_CLIENT_SECRET, IR_SUBDOMAIN).
+// O token vale ~1h; guardamos em cache pra nao bater na Azure a cada leitura aberta. Add-on
+// opcional: sem as 4 IR_* configuradas, as rotas abaixo respondem "desligado" e o front nem
+// mostra o botao (nada quebra). ----
+let irTokenCache = { valor: null, expira: 0 };
+
+async function obterTokenImmersive() {
+  const agora = Date.now();
+  if (irTokenCache.valor && agora < irTokenCache.expira) return irTokenCache.valor;
+  const { IR_TENANT_ID, IR_CLIENT_ID, IR_CLIENT_SECRET } = process.env;
+  if (!IR_TENANT_ID || !IR_CLIENT_ID || !IR_CLIENT_SECRET) throw new Error('faltam variaveis de ambiente IR_*');
+  const corpo = new URLSearchParams({
+    grant_type: 'client_credentials',
+    client_id: IR_CLIENT_ID,
+    client_secret: IR_CLIENT_SECRET,
+    resource: 'https://cognitiveservices.azure.com/',
+  });
+  const r = await fetch(`https://login.windows.net/${IR_TENANT_ID}/oauth2/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: corpo,
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.access_token) throw new Error('Azure recusou o token: ' + (d.error_description || JSON.stringify(d)));
+  // renova 5 min antes de expirar, pra nunca entregar token na iminencia de vencer
+  irTokenCache = { valor: d.access_token, expira: agora + (Number(d.expires_in || 3600) - 300) * 1000 };
+  return d.access_token;
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const rota = url.pathname;
@@ -202,6 +232,25 @@ const server = http.createServer(async (req, res) => {
       if (check.rows.length === 0) return responderJSON(res, 403, { erro: 'nao autorizado' });
       await db.execute({ sql: 'UPDATE sessoes SET finalizada_em = ? WHERE id = ?', args: [new Date().toISOString(), sessao_id] });
       return responderJSON(res, 200, { ok: true });
+    }
+    // ---- Immersive Reader: diz ao front se a feature esta configurada (as 4 IR_* presentes),
+    // sem gastar token. O front so injeta o botao de leitura assistida quando enabled=true,
+    // pra que um deploy sem IR_* simplesmente nao mostre o botao (add-on opcional). ----
+    if (rota === '/api/immersive-config' && req.method === 'GET') {
+      const { IR_TENANT_ID, IR_CLIENT_ID, IR_CLIENT_SECRET, IR_SUBDOMAIN } = process.env;
+      const enabled = !!(IR_TENANT_ID && IR_CLIENT_ID && IR_CLIENT_SECRET && IR_SUBDOMAIN);
+      return responderJSON(res, 200, { enabled });
+    }
+    // ---- Immersive Reader: entrega token + subdomain pro front (pagina do aluno, blocos de reading) ----
+    if (rota === '/api/immersive-token' && req.method === 'GET') {
+      if (!process.env.IR_SUBDOMAIN) return responderJSON(res, 500, { erro: 'nao configurado' });
+      try {
+        const token = await obterTokenImmersive();
+        return responderJSON(res, 200, { token, subdomain: process.env.IR_SUBDOMAIN });
+      } catch (e) {
+        console.error('Immersive token:', e);
+        return responderJSON(res, 500, { erro: 'token', detalhe: String(e.message || e) });
+      }
     }
     if (rota === '/' || rota === '/painel') { return servirArquivo(res, 'painel.html'); }
     if (rota === '/aluno') { return servirArquivo(res, 'aluno.html'); }

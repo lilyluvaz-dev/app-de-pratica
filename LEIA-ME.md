@@ -36,6 +36,11 @@ Cada tipo de bloco ganha uma identidade visual própria (cor/estilo de borda, ca
 3. Suba este repositório num projeto na [Vercel](https://vercel.com) e configure três variáveis de ambiente lá (Settings → Environment Variables): `TURSO_URL`, `TURSO_TOKEN`, `SENHA_PAINEL`.
 4. Publique (Deploy). A Vercel detecta e republica sozinha a cada vez que você subir uma alteração pro repositório.
 
+### Add-on opcional: leitura assistida (Microsoft Immersive Reader)
+Nos blocos de reading (`.reading-passage`), o app pode mostrar um botão **"Open in assisted reading"** que abre aquele texto no Immersive Reader da Azure (voz, velocidade, destaque de substantivo/verbo, dicionário de imagem, tradução). É **totalmente opcional** e vem desligado: se você não configurar nada, o botão simplesmente não aparece e o resto do app funciona igual.
+
+Pra ligar, crie um recurso Immersive Reader na Azure e configure mais quatro variáveis de ambiente na Vercel (Settings → Environment Variables): `IR_TENANT_ID`, `IR_CLIENT_ID`, `IR_CLIENT_SECRET`, `IR_SUBDOMAIN`. Com as quatro presentes, o botão passa a aparecer sozinho nos blocos de reading; sem elas, nada muda. O `IR_CLIENT_SECRET` tem validade (definida na criação) e, quando vencer, é só gerar um novo no portal da Azure e atualizar essa variável — não muda nada no código.
+
 ## Como pedir ajuda ao Claude pra mexer nisso
 
 Você não precisa instalar nada pra começar. Dá pra simplesmente **colar os arquivos deste repositório** (`server.js`, `public/aluno.html`, `public/painel.html`, `CONTEUDO.md`, este `LEIA-ME.md`) numa conversa comum com o Claude e pedir os ajustes que quiser — trocar cor, texto, criar uma lição, o que precisar.
