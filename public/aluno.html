@@ -72,6 +72,7 @@
   section.block:has(.reading-passage)::before,
   section.block:has(> textarea)::before,
   section.block:has(.embed-video)::before,
+  section.block:has(.embed-widget)::before,
   section.block:has(.link-card)::before,
   section.block.session-closing::before{content:none; display:none;}
   .msg{max-width:600px; margin:40px auto; text-align:center; color:var(--white); font-family:var(--font-display); font-weight:600; font-size:20px;}
@@ -179,6 +180,12 @@
   /* ---- Link/embed: vídeo (iframe que o professor cola) ou artigo externo (card, abre em nova aba) ---- */
   .embed-video{position:relative; width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#000; margin:6px 0 0 0;}
   .embed-video iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
+  /* ---- Widget interativo (Wordwall, H5P, Quizlet…): NÃO força 16:9. O aluno.html (initEmbedWidgets)
+     lê o width/height que veio no código de embed e aplica como aspect-ratio inline, respeitando a
+     proporção real do widget. O aspect-ratio 4/3 aqui é só fallback (caso o embed venha sem width/height,
+     evita a altura-padrão de 150px do iframe). width:100%+height:auto = encolhe proporcional no celular. ---- */
+  .embed-widget{text-align:center; margin:6px 0 0 0;}
+  .embed-widget iframe{display:block; width:100%; max-width:100%; height:auto; aspect-ratio:4/3; margin:0 auto; border:0; border-radius:12px; background:#fff; box-shadow:0 3px 8px -4px rgba(0,0,0,0.15);}
   .link-card{display:flex; flex-direction:column; gap:4px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 20px; text-decoration:none; color:var(--charcoal); margin-top:6px; box-shadow:0 3px 8px -4px rgba(0,0,0,0.15); transition:border-color .15s ease, box-shadow .15s ease;}
   .link-card:hover{border-color:var(--amber-bold); box-shadow:0 10px 20px -12px rgba(0,0,0,0.3);}
   .link-card-label{font-family:var(--font-label); font-weight:700; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-amber);}
@@ -307,6 +314,7 @@ function render(d){
   initDragDrop(d);
   initQuiz(d);
   initFlashcards(d);
+  initEmbedWidgets();
   initImmersiveReader(d);
   adicionarPerguntaFechamento(d);
   carregarAcervo(d.sessao.id);
@@ -656,6 +664,23 @@ function montarBaralho(elementos, containerPai, d){
   const ta = reflexao.querySelector('textarea');
   if(d.respostas[taId] !== undefined){ ta.value = d.respostas[taId]; }
   ta.addEventListener('input', ()=>agendarSalvar(taId, ta.value));
+}
+
+/* ---- Widget interativo (Wordwall, H5P, Quizlet…): respeita a proporção real do widget.
+   Esses embeds vêm como <iframe width="500" height="380" ...> (mais "quadrados" que vídeo). O
+   navegador NÃO deriva aspect-ratio confiável desses atributos em iframe (cai na altura-padrão de
+   150px), então aqui lemos width/height do próprio código colado e aplicamos como aspect-ratio
+   inline + max-width natural. Com o width:100%/height:auto do CSS, encolhe proporcional no celular
+   sem cortar nem esticar. Nada disso precisa ser marcado à mão no HTML da lição. ---- */
+function initEmbedWidgets(){
+  document.querySelectorAll('.embed-widget iframe').forEach(f=>{
+    const w = parseFloat(f.getAttribute('width'));
+    const h = parseFloat(f.getAttribute('height'));
+    if(w > 0 && h > 0){
+      f.style.aspectRatio = w + ' / ' + h;   // proporção real do widget (ex.: 500/380 de um embed mais "quadrado")
+      f.style.maxWidth = w + 'px';           // no desktop não infla além do tamanho natural
+    }
+  });
 }
 
 /* ---- Reading: botão "modo leitura assistida" (Microsoft Immersive Reader).

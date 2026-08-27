@@ -234,6 +234,37 @@ site, não é algo que dá pra contornar). Use um `.link-card`, que abre em nova
 </section>
 ```
 
+## Widget interativo (Wordwall, H5P, Quizlet…)
+
+Pra embutir uma atividade interativa que **não é vídeo** — um jogo do Wordwall, um exercício do
+H5P, um baralho do Quizlet — use `<div class="embed-widget">`. É diferente do `.embed-video`: o
+`.embed-video` força 16:9 (proporção de vídeo do YouTube), e esses widgets costumam ser mais
+"quadrados" (o Wordwall vem `500×380`, perto de 4:3). O `.embed-widget` **não força proporção
+nenhuma** — ele respeita o `width`/`height` que já vem no código de embed do site, então o widget
+aparece na proporção certa dele. No desktop fica no tamanho natural, centralizado; no celular
+encolhe proporcionalmente, sem cortar nem esticar. Não precisa mexer no `<iframe>`.
+
+```html
+<section class="block">
+  <h3>Play: match the words</h3>
+  <div class="embed-widget">
+    <iframe src="https://wordwall.net/embed/xxxxxxxx" width="500" height="380" frameborder="0" allowfullscreen></iframe>
+  </div>
+</section>
+```
+
+**⚠️ Aviso importante — use o CÓDIGO DE EMBED, não o link comum.** Pra embutir de verdade, é
+preciso pegar o *código de incorporação* específico do site, não o link que aparece na barra de
+endereço (o link de "compartilhar"). Se colar só o link comum dentro do `.embed-widget`, **não
+funciona** como embed.
+- **Wordwall**: na atividade, botão **Share** → **Embed** → aba **IFrame** → copiar aquele código
+  (é o que já traz `<iframe ... width="500" height="380">`).
+- **H5P / Quizlet / outros**: procurar o botão **Embed** (ou "Incorporar"/"</> ") e copiar o
+  código de `<iframe>` que ele mostrar. É sempre um `<iframe>`, nunca o endereço da página.
+
+Igual ao artigo externo, alguns sites bloqueiam ser embutidos em iframe por política própria — se
+um widget específico não carregar, não dá pra contornar; use um `.link-card` que abre em nova aba.
+
 ## Imagens
 
 Não é um "tipo de exercício", é conteúdo comum — uma tag `<img>` normal já funciona, sem
@@ -268,7 +299,7 @@ precisa (ou deve) colar — é automático, igual a pergunta de reflexão do fla
   `id="quiz-..."`, `.quiz-option` + `data-valor`, `.flashcard` (pra detecção do baralho),
   `.reveal-btn`/`.reveal-content` com `data-target`/`id` combinando.
 - **Cosmético** (só CSS de layout, o JS nunca lê essas classes): `formato-fill`,
-  `formato-unjumble`, `formato-matchup`, `formato-sorting`, `.embed-video`,
+  `formato-unjumble`, `formato-matchup`, `formato-sorting`, `.embed-video`, `.embed-widget`,
   `.link-card` + `.link-card-label`/`.link-card-title`/`.link-card-url`. Pode remover sem quebrar
   a funcionalidade (mas quebra o visual pretendido daquele tipo de bloco).
 - **Meio-termo**: `.reading-passage` é cosmético pro visual do bloco, mas o JS **lê** essa classe
