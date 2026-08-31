@@ -267,13 +267,28 @@ um widget específico não carregar, não dá pra contornar; use um `.link-card`
 
 ## Imagens
 
-Não é um "tipo de exercício", é conteúdo comum — uma tag `<img>` normal já funciona, sem
-precisar de nenhuma classe especial. `aluno.html` blinda automaticamente contra imagem grande
-estourando a largura do card (`max-width:100%`), então não precisa (nem deve) vir com `style`
-inline.
+Uma tag `<img>` avulsa continua funcionando (o `aluno.html` blinda automaticamente contra imagem
+grande estourando a largura do card com `max-width:100%`, então não precisa nem deve vir com
+`style` inline). Mas, como os outros tipos, a imagem tem **identidade visual própria** quando você
+a envolve num `<div class="image-block">` dentro de uma `section.block`: aí ela ganha a mesma
+"ilha" dos demais blocos — border-top com cor própria, moldura branca em volta da imagem, cantos
+arredondados e respiro — e **não recebe o rótulo "Focus point"** (igual aos outros tipos com
+identidade). Não precisa de JS nem de `aspect-ratio`: a imagem já tem proporção natural no
+navegador, é tudo CSS.
+
 ```html
-<img src="https://exemplo.com/imagem.png" alt="descrição curta da imagem">
+<section class="block">
+  <div class="image-block">
+    <img src="https://exemplo.com/imagem.png" alt="descrição curta da imagem">
+    <p class="image-caption">Legenda opcional da imagem</p>
+  </div>
+</section>
 ```
+
+A `<p class="image-caption">` é **opcional** — uma legenda discreta centralizada abaixo da imagem.
+Sem ela, a moldura mostra só a imagem. Uma `<img>` solta (fora do `.image-block`) segue válida e
+retrocompatível; o `.image-block` é só pra quando você quiser esse enquadramento de "figura".
+
 A imagem precisa estar hospedada num link público estável. Serviços simples tipo
 [postimages.org](https://postimages.org) ou [imgbb.com](https://imgbb.com) resolvem — sobe o
 arquivo, copia o link direto da imagem (não o link da página) e usa esse link no `src`.
@@ -300,8 +315,9 @@ precisa (ou deve) colar — é automático, igual a pergunta de reflexão do fla
   `.reveal-btn`/`.reveal-content` com `data-target`/`id` combinando.
 - **Cosmético** (só CSS de layout, o JS nunca lê essas classes): `formato-fill`,
   `formato-unjumble`, `formato-matchup`, `formato-sorting`, `.embed-video`, `.embed-widget`,
-  `.link-card` + `.link-card-label`/`.link-card-title`/`.link-card-url`. Pode remover sem quebrar
-  a funcionalidade (mas quebra o visual pretendido daquele tipo de bloco).
+  `.link-card` + `.link-card-label`/`.link-card-title`/`.link-card-url`, `.image-block` +
+  `.image-caption`. Pode remover sem quebrar a funcionalidade (mas quebra o visual pretendido
+  daquele tipo de bloco — a imagem, sem `.image-block`, volta a ser uma `<img>` avulsa sem ilha).
 - **Meio-termo**: `.reading-passage` é cosmético pro visual do bloco, mas o JS **lê** essa classe
   pra injetar o botão do Immersive Reader (ver seção Reading). Remover a classe tira o botão, mas
   não quebra nada além disso — o texto continua legível.

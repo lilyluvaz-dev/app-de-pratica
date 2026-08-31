@@ -74,6 +74,7 @@
   section.block:has(.embed-video)::before,
   section.block:has(.embed-widget)::before,
   section.block:has(.link-card)::before,
+  section.block:has(.image-block)::before,
   section.block.session-closing::before{content:none; display:none;}
   .msg{max-width:600px; margin:40px auto; text-align:center; color:var(--white); font-family:var(--font-display); font-weight:600; font-size:20px;}
   .kicker{font-family:var(--font-label); font-weight:700; font-size:11.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-amber); margin-bottom:10px;}
@@ -191,6 +192,14 @@
   .link-card-label{font-family:var(--font-label); font-weight:700; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-amber);}
   .link-card-title{font-family:var(--font-display); font-weight:700; font-size:16px;}
   .link-card-url{font-size:12.5px; color:var(--muted);}
+
+  /* ---- Imagem: <img> avulsa continua funcionando (blindagem global de max-width acima). Envolvê-la
+     em .image-block dá a ela a mesma "ilha" dos outros tipos: border-top próprio, moldura branca,
+     cantos e respiro — e some o "Focus point". Não precisa de JS: a imagem já tem proporção natural. ---- */
+  section.block:has(.image-block){border-top-color:var(--ink-amber);}
+  .image-block{background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; margin:6px 0 0 0; box-shadow:0 3px 8px -4px rgba(0,0,0,0.15);}
+  .image-block img{margin:0 auto; border-radius:8px;}
+  .image-block .image-caption{font-family:var(--font-label); font-weight:600; font-size:12.5px; letter-spacing:0.02em; color:var(--muted); text-align:center; margin:12px 0 0 0;}
 
   /* ---- Pergunta de fechamento: sempre a última coisa da sessão, automática, antes do botão de concluir ---- */
   section.block.session-closing{background:var(--amber-1); border:2px solid var(--amber-bold);}
